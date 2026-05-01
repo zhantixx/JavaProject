@@ -22,7 +22,7 @@ public class TaskService {
 
     private final TaskRepository taskRepository;
     private final UserRepository userRepository;
-    private final NotificationProducer notificationProducer;  // Добавляем Kafka producer
+    private final NotificationProducer notificationProducer;
 
     @CacheEvict(value = "userTasks", allEntries = true)
     public TaskResponse createTask(TaskRequest request) {
@@ -102,7 +102,6 @@ public class TaskService {
         System.out.println("Кэш задач очищен");
     }
 
-    // Метод для отправки уведомлений в Kafka
     private void sendNotification(Task task, User user, String eventType) {
         try {
             DeadlineEvent event = new DeadlineEvent(
