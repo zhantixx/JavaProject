@@ -35,10 +35,4 @@ public class TaskController {
         taskService.deleteTask(id);
         return ResponseEntity.noContent().build();
     }
-
-    @DeleteMapping("/cache")
-    public ResponseEntity<Void> clearCache() {
-        taskService.clearCache();
-        return ResponseEntity.noContent().build();
-    }
 }

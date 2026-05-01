@@ -7,6 +7,8 @@ import org.example.entity.User;
 import org.example.repository.TaskRepository;
 import org.example.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import java.util.List;
@@ -19,6 +21,7 @@ public class TaskService {
     private final TaskRepository taskRepository;
     private final UserRepository userRepository;
 
+    @CacheEvict(value = "userTasks", allEntries = true)
     public TaskResponse createTask(TaskRequest request) {
         User currentUser = getCurrentUser();
 
@@ -34,7 +37,9 @@ public class TaskService {
         return mapToResponse(saved);
     }
 
+    @Cacheable(value = "userTasks", key = "#root.methodName + '_' + authentication.name", unless = "#result.isEmpty()")
     public List<TaskResponse> getUserTasks() {
+        System.out.println("📡 Загрузка задач из БД (не из кэша)");
         User currentUser = getCurrentUser();
         return taskRepository.findByUser(currentUser)
                 .stream()
@@ -42,6 +47,7 @@ public class TaskService {
                 .collect(Collectors.toList());
     }
 
+    @CacheEvict(value = "userTasks", allEntries = true)
     public TaskResponse updateTask(Long id, TaskRequest request) {
         User currentUser = getCurrentUser();
         Task task = taskRepository.findById(id)
@@ -61,6 +67,7 @@ public class TaskService {
         return mapToResponse(updated);
     }
 
+    @CacheEvict(value = "userTasks", allEntries = true)
     public void deleteTask(Long id) {
         User currentUser = getCurrentUser();
         Task task = taskRepository.findById(id)
@@ -71,6 +78,12 @@ public class TaskService {
         }
 
         taskRepository.delete(task);
+    }
+
+    // Метод для ручной очистки кэша (если понадобится)
+    @CacheEvict(value = "userTasks", allEntries = true)
+    public void clearCache() {
+        System.out.println("🗑️ Кэш задач очищен");
     }
 
     private User getCurrentUser() {

@@ -8,11 +8,11 @@ import org.example.repository.TaskRepository;
 import org.example.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Mono;
 
 import java.util.HashMap;
 import java.util.List;
@@ -35,15 +35,21 @@ public class DeepSeekService {
     @Value("${deepseek.api.model}")
     private String model;
 
+    @Cacheable(value = "aiResponses", key = "#userMessage + '_' + getCurrentUser().getEmail()", unless = "#result == null || #result.length() > 500")
     public String chatWithAI(String userMessage) {
+        System.out.println("🤖 Вызов DeepSeek API (не из кэша): " + userMessage);
+
         User currentUser = getCurrentUser();
         List<Task> userTasks = taskRepository.findByUser(currentUser);
 
         String context = buildContextFromTasks(userTasks);
-
         String prompt = buildPrompt(context, userMessage);
 
         return callDeepSeekAPI(prompt);
+    }
+
+    private String getUserEmail() {
+        return SecurityContextHolder.getContext().getAuthentication().getName();
     }
 
     private String callDeepSeekAPI(String prompt) {
@@ -57,7 +63,10 @@ public class DeepSeekService {
                     Map.of("role", "user", "content", prompt)
             });
             requestBody.put("stream", false);
+            requestBody.put("temperature", 0.7);  // Добавим параметры генерации
+            requestBody.put("max_tokens", 500);   // Ограничим длину ответа
 
+            long startTime = System.currentTimeMillis();
             String responseJson = webClient.post()
                     .header("Authorization", "Bearer " + apiKey)
                     .contentType(MediaType.APPLICATION_JSON)
@@ -65,14 +74,35 @@ public class DeepSeekService {
                     .retrieve()
                     .bodyToMono(String.class)
                     .block();
+            long endTime = System.currentTimeMillis();
+
+            System.out.println("⏱️ DeepSeek API ответил за " + (endTime - startTime) + "ms");
 
             ObjectMapper mapper = new ObjectMapper();
             JsonNode root = mapper.readTree(responseJson);
-            return root.path("choices").get(0).path("message").path("content").asText();
+            String reply = root.path("choices").get(0).path("message").path("content").asText();
+
+            // Проверка на использование токенов (если вернёт API)
+            if (root.has("usage")) {
+                int totalTokens = root.path("usage").path("total_tokens").asInt();
+                System.out.println("📊 Использовано токенов: " + totalTokens);
+            }
+
+            return reply;
 
         } catch (Exception e) {
+            System.err.println("❌ Ошибка DeepSeek API: " + e.getMessage());
             return "Извините, произошла ошибка: " + e.getMessage();
         }
+    }
+
+    public String chatWithAIWithoutCache(String userMessage) {
+        System.out.println("🔄 Принудительный вызов API (без кэша)");
+        User currentUser = getCurrentUser();
+        List<Task> userTasks = taskRepository.findByUser(currentUser);
+        String context = buildContextFromTasks(userTasks);
+        String prompt = buildPrompt(context, userMessage);
+        return callDeepSeekAPI(prompt);
     }
 
     private String buildContextFromTasks(List<Task> tasks) {
@@ -93,7 +123,7 @@ public class DeepSeekService {
 
     private String buildPrompt(String context, String userMessage) {
         return context + "\n\nВопрос пользователя: " + userMessage +
-                "\n\nОтветь на вопрос пользователя, используя контекст его задач. Если вопрос не связан с задачами, просто ответь как полезный ассистент.";
+                "\n\nОтветь на вопрос пользователя, используя контекст его задач. Если вопрос не связан с задачами, просто ответь как полезный ассистент. Будь конкретным и полезным.";
     }
 
     private User getCurrentUser() {
