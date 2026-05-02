@@ -2,25 +2,26 @@ package org.example.gateway.filter;
 
 import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
-import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
+import io.github.bucket4j.Refill;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cloud.gateway.filter.GatewayFilterChain;
+import org.springframework.cloud.gateway.filter.GlobalFilter;
+import org.springframework.core.Ordered;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
-import org.springframework.web.filter.OncePerRequestFilter;
+import org.springframework.web.server.ServerWebExchange;
+import reactor.core.publisher.Mono;
 
-import java.io.IOException;
 import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Component
-public class RateLimitingFilter extends OncePerRequestFilter {
+public class RateLimitingFilter implements GlobalFilter, Ordered {
 
     private final Map<String, Bucket> buckets = new ConcurrentHashMap<>();
 
-    @Value("${rate.limit.requests-per-minute:10}")
+    @Value("${rate.limit.requests-per-minute:100}")
     private int requestsPerMinute;
 
     private Bucket createBucket() {
@@ -32,27 +33,29 @@ public class RateLimitingFilter extends OncePerRequestFilter {
     }
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request,
-                                    HttpServletResponse response,
-                                    FilterChain filterChain)
-            throws ServletException, IOException {
-
-        String clientIp = getClientIP(request);
+    public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
+        String clientIp = getClientIP(exchange);
         Bucket bucket = buckets.computeIfAbsent(clientIp, k -> createBucket());
 
         if (bucket.tryConsume(1)) {
-            filterChain.doFilter(request, response);
+            return chain.filter(exchange);
         } else {
-            response.setStatus(429);
-            response.getWriter().write("Too many requests. Limit: " + requestsPerMinute + " per minute");
+            exchange.getResponse().setStatusCode(HttpStatus.TOO_MANY_REQUESTS);
+            exchange.getResponse().getHeaders().add("X-Rate-Limit-Reset", "60");
+            return exchange.getResponse().setComplete();
         }
     }
 
-    private String getClientIP(HttpServletRequest request) {
-        String xfHeader = request.getHeader("X-Forwarded-For");
-        if (xfHeader != null) {
+    private String getClientIP(ServerWebExchange exchange) {
+        String xfHeader = exchange.getRequest().getHeaders().getFirst("X-Forwarded-For");
+        if (xfHeader != null && !xfHeader.isEmpty()) {
             return xfHeader.split(",")[0];
         }
-        return request.getRemoteAddr();
+        return exchange.getRequest().getRemoteAddress().getAddress().getHostAddress();
+    }
+
+    @Override
+    public int getOrder() {
+        return -2;
     }
 }
