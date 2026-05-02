@@ -1,4 +1,4 @@
-package org.example.config;
+package org.example.gateway.config;
 
 import org.example.service.CustomUserDetailsService;
 import jakarta.servlet.FilterChain;

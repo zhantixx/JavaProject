@@ -1,7 +1,8 @@
 package org.example.config;
 
 import lombok.RequiredArgsConstructor;
-import org.example.filter.RateLimitingFilter;
+import org.example.gateway.filter.RateLimitingFilter;
+import org.example.gateway.config.JwtAuthenticationFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
