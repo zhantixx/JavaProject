@@ -1,6 +1,6 @@
-package org.example.service;
+package org.example.notificationservice.producer;
 
-import org.example.event.DeadlineEvent;
+import org.example.notificationservice.event.DeadlineEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;

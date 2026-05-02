@@ -1,9 +1,9 @@
-package org.example.scheduler;
+package org.example.notificationservice.scheduler;
 
-import org.example.entity.Task;
-import org.example.event.DeadlineEvent;
-import org.example.repository.TaskRepository;
-import org.example.service.NotificationProducer;
+import org.example.taskservice.entity.Task;
+import org.example.notificationservice.event.DeadlineEvent;
+import org.example.taskservice.repository.TaskRepository;
+import org.example.notificationservice.producer.NotificationProducer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.EnableScheduling;
