@@ -10,6 +10,6 @@ public class AnalyticsServiceApplication {
 
     public static void main(String[] args) {
         SpringApplication.run(AnalyticsServiceApplication.class, args);
-        System.out.println("Analytics Service запущен на порту 8085");
+        System.out.println("    Analytics Service запущен на порту 8085");
     }
 }

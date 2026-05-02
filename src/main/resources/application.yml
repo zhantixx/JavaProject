@@ -40,7 +40,7 @@ jwt:
             value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
             properties:
               spring.json.trusted.packages: "*"
-              spring.json.type.mapping: task.event:org.example.event.DeadlineEvent
+              spring.json.type.mapping: task.event:org.example.notificationservice.event.DeadlineEvent
 
       mail:
         notification:
