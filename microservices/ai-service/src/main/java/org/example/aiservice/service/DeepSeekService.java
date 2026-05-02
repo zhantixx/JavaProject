@@ -1,10 +1,10 @@
-package org.example.service;
+package org.example.aiservice.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.example.entity.Task;
+import org.example.taskservice.entity.Task;
 import org.example.entity.User;
-import org.example.repository.TaskRepository;
+import org.example.taskservice.repository.TaskRepository;
 import org.example.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;

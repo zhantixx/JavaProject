@@ -1,9 +1,9 @@
-package org.example.controller;
+package org.example.aiservice.controller;
 
 
-import  org.example.dto.ChatRequest;
-import  org.example.dto.ChatResponse;
-import  org.example.service.DeepSeekService;
+import org.example.aiservice.dto.ChatRequest;
+import org.example.aiservice.dto.ChatResponse;
+import org.example.aiservice.service.DeepSeekService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

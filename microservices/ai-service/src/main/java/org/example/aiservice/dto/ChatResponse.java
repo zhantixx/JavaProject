@@ -1,4 +1,4 @@
-package org.example.dto;
+package org.example.aiservice.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
