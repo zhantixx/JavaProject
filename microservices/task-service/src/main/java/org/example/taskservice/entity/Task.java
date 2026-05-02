@@ -1,7 +1,9 @@
-package org.example.entity;
+package org.example.taskservice.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import org.example.entity.User;
+
 import java.time.LocalDateTime;
 
 @Entity

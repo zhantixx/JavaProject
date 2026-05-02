@@ -1,8 +1,8 @@
-package org.example.controller;
+package org.example.taskservice.controller;
 
-import org.example.dto.TaskRequest;
-import org.example.dto.TaskResponse;
-import org.example.service.TaskService;
+import org.example.taskservice.dto.TaskRequest;
+import org.example.taskservice.dto.TaskResponse;
+import org.example.taskservice.service.TaskService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

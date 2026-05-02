@@ -1,7 +1,7 @@
-package org.example.repository;
+package org.example.taskservice.repository;
 
 
-import org.example.entity.Task;
+import org.example.taskservice.entity.Task;
 import org.example.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 

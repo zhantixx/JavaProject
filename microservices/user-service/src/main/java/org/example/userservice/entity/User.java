@@ -2,6 +2,8 @@ package org.example.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import org.example.taskservice.entity.Task;
+
 import java.util.List;
 
 @Entity

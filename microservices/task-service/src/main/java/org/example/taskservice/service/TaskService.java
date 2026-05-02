@@ -1,13 +1,14 @@
-package org.example.service;
+package org.example.taskservice.service;
 
-import org.example.dto.TaskRequest;
-import org.example.dto.TaskResponse;
-import org.example.entity.Task;
+import org.example.taskservice.dto.TaskRequest;
+import org.example.taskservice.dto.TaskResponse;
+import org.example.taskservice.entity.Task;
 import org.example.entity.User;
 import org.example.event.DeadlineEvent;
-import org.example.repository.TaskRepository;
+import org.example.taskservice.repository.TaskRepository;
 import org.example.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.example.service.NotificationProducer;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.core.context.SecurityContextHolder;

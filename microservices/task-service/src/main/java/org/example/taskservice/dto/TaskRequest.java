@@ -1,4 +1,4 @@
-package org.example.dto;
+package org.example.taskservice.dto;
 
 import lombok.Data;
 import java.time.LocalDateTime;
