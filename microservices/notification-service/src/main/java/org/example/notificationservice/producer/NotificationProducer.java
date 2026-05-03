@@ -17,10 +17,9 @@ public class NotificationProducer {
     public void sendDeadlineNotification(DeadlineEvent event) {
         try {
             kafkaTemplate.send(TOPIC, event.getUserEmail(), event);
-            log.info("Отправлено событие в Kafka: {} для пользователя {}",
-                    event.getEventType(), event.getUserEmail());
+            log.info("Sent event to Kafka: {} for user {}", event.getEventType(), event.getUserEmail());
         } catch (Exception e) {
-            log.error("Ошибка отправки в Kafka: {}", e.getMessage());
+            log.error("Error sending to Kafka: {}", e.getMessage());
         }
     }
 }
