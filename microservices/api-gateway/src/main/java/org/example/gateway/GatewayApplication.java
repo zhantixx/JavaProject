@@ -11,9 +11,9 @@ public class GatewayApplication {
         System.out.println("API Gateway запущен на порту 8080");
         System.out.println("Маршруты:");
         System.out.println("   /api/auth/** → user-service (8081)");
-        System.out.println("   /api/tasks/** → task-service (8082)");
+        System.out.println("   /api/tasks/** → task-service (8086)");
         System.out.println("   /api/chat/** → ai-service (8083)");
-        System.out.println("   /api/notifications/** → notification-service (8086)");
+        System.out.println("   /api/notifications/** → notification-service (8084)");
         System.out.println("   /api/analytics/** → analytics-service (8085)");
     }
 }
