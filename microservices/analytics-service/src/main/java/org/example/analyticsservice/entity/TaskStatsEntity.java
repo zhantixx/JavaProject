@@ -1,55 +1,49 @@
 package org.example.analyticsservice.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "task_stats")
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
 public class TaskStatsEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "user_id")
     private Long userId;
-
-    @Column(name = "total_tasks")
     private long totalTasks;
-
-    @Column(name = "completed_tasks")
     private long completedTasks;
-
-    @Column(name = "pending_tasks")
     private long pendingTasks;
-
-    @Column(name = "overdue_tasks")
     private long overdueTasks;
-
-    @Column(name = "completion_rate")
     private double completionRate;
-
-    @Column(name = "high_priority_tasks")
     private long highPriorityTasks;
-
-    @Column(name = "medium_priority_tasks")
     private long mediumPriorityTasks;
-
-    @Column(name = "low_priority_tasks")
     private long lowPriorityTasks;
-
-    @Column(name = "last_updated")
     private LocalDateTime lastUpdated;
 
-    @PreUpdate
-    @PrePersist
-    protected void onUpdate() {
-        lastUpdated = LocalDateTime.now();
-    }
+    public TaskStatsEntity() {}
+
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    public Long getUserId() { return userId; }
+    public void setUserId(Long userId) { this.userId = userId; }
+    public long getTotalTasks() { return totalTasks; }
+    public void setTotalTasks(long totalTasks) { this.totalTasks = totalTasks; }
+    public long getCompletedTasks() { return completedTasks; }
+    public void setCompletedTasks(long completedTasks) { this.completedTasks = completedTasks; }
+    public long getPendingTasks() { return pendingTasks; }
+    public void setPendingTasks(long pendingTasks) { this.pendingTasks = pendingTasks; }
+    public long getOverdueTasks() { return overdueTasks; }
+    public void setOverdueTasks(long overdueTasks) { this.overdueTasks = overdueTasks; }
+    public double getCompletionRate() { return completionRate; }
+    public void setCompletionRate(double completionRate) { this.completionRate = completionRate; }
+    public long getHighPriorityTasks() { return highPriorityTasks; }
+    public void setHighPriorityTasks(long highPriorityTasks) { this.highPriorityTasks = highPriorityTasks; }
+    public long getMediumPriorityTasks() { return mediumPriorityTasks; }
+    public void setMediumPriorityTasks(long mediumPriorityTasks) { this.mediumPriorityTasks = mediumPriorityTasks; }
+    public long getLowPriorityTasks() { return lowPriorityTasks; }
+    public void setLowPriorityTasks(long lowPriorityTasks) { this.lowPriorityTasks = lowPriorityTasks; }
+    public LocalDateTime getLastUpdated() { return lastUpdated; }
+    public void setLastUpdated(LocalDateTime lastUpdated) { this.lastUpdated = lastUpdated; }
 }
