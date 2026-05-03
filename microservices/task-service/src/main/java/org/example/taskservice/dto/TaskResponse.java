@@ -1,9 +1,7 @@
 package org.example.taskservice.dto;
 
-import lombok.Data;
 import java.time.LocalDateTime;
 
-@Data
 public class TaskResponse {
     private Long id;
     private String title;
@@ -12,4 +10,31 @@ public class TaskResponse {
     private String status;
     private LocalDateTime deadline;
     private Long userId;
+
+    public TaskResponse() {}
+
+    public TaskResponse(Long id, String title, String description, String priority, String status, LocalDateTime deadline, Long userId) {
+        this.id = id;
+        this.title = title;
+        this.description = description;
+        this.priority = priority;
+        this.status = status;
+        this.deadline = deadline;
+        this.userId = userId;
+    }
+
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    public String getTitle() { return title; }
+    public void setTitle(String title) { this.title = title; }
+    public String getDescription() { return description; }
+    public void setDescription(String description) { this.description = description; }
+    public String getPriority() { return priority; }
+    public void setPriority(String priority) { this.priority = priority; }
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
+    public LocalDateTime getDeadline() { return deadline; }
+    public void setDeadline(LocalDateTime deadline) { this.deadline = deadline; }
+    public Long getUserId() { return userId; }
+    public void setUserId(Long userId) { this.userId = userId; }
 }
