@@ -1,7 +1,6 @@
 package org.example.gateway.filter;
 
 import org.example.gateway.utils.JwtUtil;
-import lombok.RequiredArgsConstructor;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
@@ -13,10 +12,13 @@ import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
 @Component
-@RequiredArgsConstructor
 public class JwtAuthFilter implements GlobalFilter, Ordered {
 
     private final JwtUtil jwtUtil;
+
+    public JwtAuthFilter(JwtUtil jwtUtil) {
+        this.jwtUtil = jwtUtil;
+    }
 
     private static final String[] PUBLIC_PATHS = {
             "/api/auth/register",
@@ -51,7 +53,7 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
             String username = jwtUtil.extractUsername(token);
 
             ServerHttpRequest mutatedRequest = exchange.getRequest().mutate()
-                    .header("X-User-Email", username)
+                    .header("X-User-Id", username)
                     .build();
 
             return chain.filter(exchange.mutate().request(mutatedRequest).build());
