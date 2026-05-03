@@ -1,10 +1,7 @@
-package org.example.entity;
+package org.example.userservice.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;
-import org.example.taskservice.entity.Task;
-
-import java.util.List;
 
 @Entity
 @Table(name = "users")
@@ -23,7 +20,4 @@ public class User {
     private String name;
 
     private String role = "USER";
-
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
-    private List<Task> tasks;
 }
