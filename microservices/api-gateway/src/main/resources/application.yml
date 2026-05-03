@@ -1,0 +1,45 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      routes:
+        - id: user-service
+          uri: http://localhost:8081
+          predicates:
+            - Path=/api/auth/**, /api/users/**
+
+        - id: task-service
+          uri: http://localhost:8086
+          predicates:
+            - Path=/api/tasks/**
+
+        - id: ai-service
+          uri: http://localhost:8083
+          predicates:
+            - Path=/api/chat/**
+
+        - id: notification-service
+          uri: http://localhost:8084
+          predicates:
+            - Path=/api/notifications/**
+
+        - id: analytics-service
+          uri: http://localhost:8085
+          predicates:
+            - Path=/api/analytics/**
+
+jwt:
+  secret: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
+
+rate:
+  limit:
+    requests-per-minute: 100
+
+logging:
+  level:
+    org.example.apigateway: DEBUG
+    org.springframework.cloud.gateway: INFO

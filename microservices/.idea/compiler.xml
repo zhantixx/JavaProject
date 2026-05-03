@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CompilerConfiguration">
+    <annotationProcessing>
+      <profile default="true" name="Default" enabled="true" />
+    </annotationProcessing>
+    <bytecodeTargetLevel>
+      <module name="ai-service" target="21" />
+      <module name="analytics-service" target="21" />
+      <module name="api-gateway" target="21" />
+      <module name="notification-service" target="21" />
+      <module name="personal-assistant-microservices" target="21" />
+      <module name="task-service" target="21" />
+      <module name="user-service" target="21" />
+    </bytecodeTargetLevel>
+  </component>
+</project>

@@ -1,0 +1,16 @@
+server:
+  port: 8083
+
+spring:
+  application:
+    name: ai-service
+
+deepseek:
+  api:
+    key: sk-8be64313378e431fbb46aaec00c3d191
+    url: https://api.deepseek.com/v1/chat/completions
+    model: deepseek-chat
+
+logging:
+  level:
+    org.example.aiservice: DEBUG
