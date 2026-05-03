@@ -1,7 +1,6 @@
 package org.example.userservice.entity;
 
 import jakarta.persistence.*;
-import java.util.List;
 
 @Entity
 @Table(name = "users")
@@ -20,8 +19,15 @@ public class User {
 
     private String role = "USER";
 
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
-    private List<Object> tasks;
+    public User() {
+    }
+
+    public User(String email, String password, String name, String role) {
+        this.email = email;
+        this.password = password;
+        this.name = name;
+        this.role = role;
+    }
 
     public Long getId() {
         return id;
@@ -61,13 +67,5 @@ public class User {
 
     public void setRole(String role) {
         this.role = role;
-    }
-
-    public List<Object> getTasks() {
-        return tasks;
-    }
-
-    public void setTasks(List<Object> tasks) {
-        this.tasks = tasks;
     }
 }
