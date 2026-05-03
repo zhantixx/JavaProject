@@ -1,9 +1,9 @@
-package org.example.controller;
+package org.example.userservice.controller;
 
-import org.example.dto.AuthRequest;
-import org.example.dto.AuthResponse;
-import org.example.dto.RegisterRequest;
-import org.example.service.AuthService;
+import org.example.userservice.dto.AuthRequest;
+import org.example.userservice.dto.AuthResponse;
+import org.example.userservice.dto.RegisterRequest;
+import org.example.userservice.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
