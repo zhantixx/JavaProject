@@ -1,52 +1,35 @@
 package org.example.notificationservice.consumer;
 
 import org.example.notificationservice.event.DeadlineEvent;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.kafka.annotation.KafkaListener;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 
-@Service
-@RequiredArgsConstructor
-@Slf4j
+@Component
 public class NotificationConsumer {
 
-    @KafkaListener(topics = "task-notifications", groupId = "task-notification-group")
-    public void consumeDeadlineEvent(DeadlineEvent event) {
-        log.info("Получено событие из Kafka: {}", event.getEventType());
+    private static final Logger log = LoggerFactory.getLogger(NotificationConsumer.class);
+
+    @KafkaListener(topics = "task-notifications", groupId = "notification-group")
+    public void consume(DeadlineEvent event) {
+        log.info("Received event: {}", event.getEventType());
 
         switch (event.getEventType()) {
             case "REMINDER":
-                sendReminder(event);
+                log.info("Reminder: Task '{}' deadline is {}", event.getTaskTitle(), event.getDeadline());
                 break;
             case "OVERDUE":
-                sendOverdueNotification(event);
+                log.info("Overdue: Task '{}' was due on {}", event.getTaskTitle(), event.getDeadline());
                 break;
             case "CREATED":
-                sendTaskCreatedNotification(event);
+                log.info("New task created: '{}' by {}", event.getTaskTitle(), event.getUserName());
                 break;
             case "UPDATED":
-                sendTaskUpdatedNotification(event);
+                log.info("Task updated: '{}'", event.getTaskTitle());
                 break;
+            default:
+                log.info("Unknown event type: {}", event.getEventType());
         }
-    }
-
-    private void sendReminder(DeadlineEvent event) {
-        log.info("НАПОМИНАНИЕ: Задача '{}' должна быть выполнена до {}",
-                event.getTaskTitle(), event.getDeadline());
-    }
-
-    private void sendOverdueNotification(DeadlineEvent event) {
-        log.warn("ПРОСРОЧЕНА задача: '{}' (дедлайн был {})",
-                event.getTaskTitle(), event.getDeadline());
-    }
-
-    private void sendTaskCreatedNotification(DeadlineEvent event) {
-        log.info("Новая задача: '{}' создана для {}",
-                event.getTaskTitle(), event.getUserName());
-    }
-
-    private void sendTaskUpdatedNotification(DeadlineEvent event) {
-        log.info("Задача '{}' обновлена", event.getTaskTitle());
     }
 }
