@@ -8,6 +8,6 @@ public class TaskServiceApplication {
 
     public static void main(String[] args) {
         SpringApplication.run(TaskServiceApplication.class, args);
-        System.out.println("Task Service запущен на порту 8082");
+        System.out.println("Task Service запущен на порту 8086");
     }
 }
