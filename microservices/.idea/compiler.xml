@@ -3,15 +3,27 @@
   <component name="CompilerConfiguration">
     <annotationProcessing>
       <profile default="true" name="Default" enabled="true" />
+      <profile name="Maven default annotation processors profile" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <module name="analytics-service" />
+        <module name="api-gateway" />
+        <module name="task-service" />
+        <module name="user-service" />
+        <module name="ai-service" />
+        <module name="notification-service" />
+      </profile>
     </annotationProcessing>
-    <bytecodeTargetLevel>
-      <module name="ai-service" target="21" />
-      <module name="analytics-service" target="21" />
-      <module name="api-gateway" target="21" />
-      <module name="notification-service" target="21" />
-      <module name="personal-assistant-microservices" target="21" />
-      <module name="task-service" target="21" />
-      <module name="user-service" target="21" />
-    </bytecodeTargetLevel>
+  </component>
+  <component name="JavacSettings">
+    <option name="ADDITIONAL_OPTIONS_OVERRIDE">
+      <module name="ai-service" options="-parameters" />
+      <module name="analytics-service" options="-parameters" />
+      <module name="api-gateway" options="-parameters" />
+      <module name="notification-service" options="-parameters" />
+      <module name="task-service" options="-parameters" />
+      <module name="user-service" options="-parameters" />
+    </option>
   </component>
 </project>
