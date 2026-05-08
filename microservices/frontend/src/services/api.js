@@ -7,7 +7,6 @@ const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
-// Интерцептор для автоматической подстановки токена
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
   if (token) {
