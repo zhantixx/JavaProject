@@ -35,6 +35,7 @@ function App() {
             <Route path="/" element={<Navigate to={token ? "/tasks" : "/login"} />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/oauth2/redirect" element={<OAuth2Redirect />} />
             <Route path="/tasks" element={
               token ? (
                 <div className="max-w-4xl mx-auto space-y-6">
