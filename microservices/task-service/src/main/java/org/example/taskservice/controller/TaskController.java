@@ -19,25 +19,29 @@ public class TaskController {
 
     @PostMapping
     public ResponseEntity<TaskResponse> createTask(@RequestBody TaskRequest request,
-                                                   @RequestHeader("X-User-Id") Long userId) {
+                                                   @RequestHeader(value = "X-User-Id", required = false) Long userId) {
+        if (userId == null) userId = 1L; // временная заглушка
         return ResponseEntity.ok(taskService.createTask(request, userId));
     }
 
     @GetMapping
-    public ResponseEntity<List<TaskResponse>> getUserTasks(@RequestHeader("X-User-Id") Long userId) {
+    public ResponseEntity<List<TaskResponse>> getUserTasks(@RequestHeader(value = "X-User-Id", required = false) Long userId) {
+        if (userId == null) userId = 1L;
         return ResponseEntity.ok(taskService.getUserTasks(userId));
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<TaskResponse> updateTask(@PathVariable Long id,
                                                    @RequestBody TaskRequest request,
-                                                   @RequestHeader("X-User-Id") Long userId) {
+                                                   @RequestHeader(value = "X-User-Id", required = false) Long userId) {
+        if (userId == null) userId = 1L;
         return ResponseEntity.ok(taskService.updateTask(id, request, userId));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteTask(@PathVariable Long id,
-                                           @RequestHeader("X-User-Id") Long userId) {
+                                           @RequestHeader(value = "X-User-Id", required = false) Long userId) {
+        if (userId == null) userId = 1L;
         taskService.deleteTask(id, userId);
         return ResponseEntity.noContent().build();
     }
