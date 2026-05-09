@@ -5,6 +5,7 @@ import Register from './components/Register';
 import TaskList from './components/TaskList';
 import TaskForm from './components/TaskForm';
 import Chat from './components/Chat';
+import OAuth2Redirect from './components/OAuth2Redirect';
 
 function App() {
   const token = localStorage.getItem('token');

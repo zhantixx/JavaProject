@@ -31,32 +31,34 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**", "/oauth2/**", "/login/oauth2/**").permitAll()
+                        .requestMatchers("/api/auth/register", "/api/auth/login", "/oauth2/**", "/login/oauth2/**").permitAll()
                         .anyRequest().authenticated()
                 )
+                // НЕТ formLogin()! Обычный логин обрабатывается вашим AuthController.
+                // Только OAuth2 логин через Google
                 .oauth2Login(oauth2 -> oauth2
                         .successHandler((request, response, authentication) -> {
+                            System.out.println("OAuth2 successHandler called");
                             OAuth2User oauth2User = (OAuth2User) authentication.getPrincipal();
                             String email = oauth2User.getAttribute("email");
-                            String jwt = jwtUtil.generateToken(email);
-                            response.sendRedirect("http://localhost:3000/oauth2/redirect?token=" + jwt);
+                            System.out.println("Email: " + email);
+                            String token = jwtUtil.generateToken(email);
+                            response.sendRedirect("http://localhost:3000/oauth2/redirect?token=" + token);
                         })
                 )
-                .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                )
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
 
     @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
+        return config.getAuthenticationManager();
     }
 
     @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
-        return config.getAuthenticationManager();
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
     }
 }
