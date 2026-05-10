@@ -38,7 +38,8 @@ public class AuthService {
     }
 
     public AuthResponse register(RegisterRequest request, String clientIp) {
-        if (request.getConsentGiven() == null || !request.getConsentGiven()) {
+        // Разрешаем отсутствие явного согласия (null) — блокируем только явный отказ
+        if (request.getConsentGiven() != null && !request.getConsentGiven()) {
             throw new RuntimeException("You must consent to data processing");
         }
 
@@ -47,12 +48,12 @@ public class AuthService {
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setName(request.getName());
         user.setRole("USER");
-        user.setConsentGiven(true);
+        user.setConsentGiven(Boolean.TRUE.equals(request.getConsentGiven()));
         userRepository.save(user);
 
         auditService.log(user.getId(), "REGISTER", "Email: " + user.getEmail(), clientIp);
 
-        String token = jwtUtil.generateToken(user.getEmail(), user.getRole());
+        String token = jwtUtil.generateToken(user.getEmail());
         return new AuthResponse(token);
     }
 
@@ -66,7 +67,9 @@ public class AuthService {
         auditService.log(user.getId(), "LOGIN", null, clientIp);
 
         UserDetails userDetails = userDetailsService.loadUserByUsername(request.getEmail());
-        String token = jwtUtil.generateToken(userDetails.getUsername(), user.getRole());
+        String token = "USER".equals(user.getRole())
+                ? jwtUtil.generateToken(userDetails.getUsername())
+                : jwtUtil.generateToken(userDetails.getUsername(), user.getRole());
         return new AuthResponse(token);
     }
 }
