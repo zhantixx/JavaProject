@@ -52,7 +52,7 @@ public class AuthService {
 
         auditService.log(user.getId(), "REGISTER", "Email: " + user.getEmail(), clientIp);
 
-        String token = jwtUtil.generateToken(user.getEmail());
+        String token = jwtUtil.generateToken(user.getEmail(), user.getRole());
         return new AuthResponse(token);
     }
 
@@ -66,8 +66,7 @@ public class AuthService {
         auditService.log(user.getId(), "LOGIN", null, clientIp);
 
         UserDetails userDetails = userDetailsService.loadUserByUsername(request.getEmail());
-        String token = jwtUtil.generateToken(userDetails.getUsername());
-
+        String token = jwtUtil.generateToken(userDetails.getUsername(), user.getRole());
         return new AuthResponse(token);
     }
 }
