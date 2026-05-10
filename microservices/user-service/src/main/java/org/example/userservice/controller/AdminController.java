@@ -9,6 +9,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/admin")
+@PreAuthorize("hasRole('ADMIN')")
 public class AdminController {
 
     private final UserRepository userRepository;
@@ -18,13 +19,11 @@ public class AdminController {
     }
 
     @GetMapping("/users")
-    @PreAuthorize("hasRole('ADMIN')")
     public List<User> getAllUsers() {
         return userRepository.findAll();
     }
 
     @PutMapping("/users/{id}/role")
-    @PreAuthorize("hasRole('ADMIN')")
     public void changeRole(@PathVariable Long id, @RequestParam String role) {
         User user = userRepository.findById(id).orElseThrow();
         user.setRole(role);
