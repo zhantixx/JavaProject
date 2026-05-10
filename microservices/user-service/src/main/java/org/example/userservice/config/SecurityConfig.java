@@ -4,6 +4,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -16,6 +17,7 @@ import org.example.userservice.utils.JwtUtil;
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthFilter;
@@ -34,15 +36,11 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/register", "/api/auth/login", "/oauth2/**", "/login/oauth2/**").permitAll()
                         .anyRequest().authenticated()
                 )
-                // НЕТ formLogin()! Обычный логин обрабатывается вашим AuthController.
-                // Только OAuth2 логин через Google
                 .oauth2Login(oauth2 -> oauth2
                         .successHandler((request, response, authentication) -> {
-                            System.out.println("OAuth2 successHandler called");
                             OAuth2User oauth2User = (OAuth2User) authentication.getPrincipal();
                             String email = oauth2User.getAttribute("email");
-                            System.out.println("Email: " + email);
-                            String token = jwtUtil.generateToken(email);
+                            String token = jwtUtil.generateToken(email, "USER");
                             response.sendRedirect("http://localhost:3000/oauth2/redirect?token=" + token);
                         })
                 )
