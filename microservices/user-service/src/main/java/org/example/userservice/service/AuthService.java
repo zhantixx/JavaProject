@@ -45,10 +45,15 @@ public class AuthService {
         user.setRole("USER");
         userRepository.save(user);
 
+        if (request.getConsentGiven() == null || !request.getConsentGiven()) {
+            throw new RuntimeException("You must consent to data processing");
+        }
+
         auditService.log(user.getId(), "REGISTER", "Email: " + user.getEmail(), clientIp);
 
         String token = jwtUtil.generateToken(user.getEmail());
         return new AuthResponse(token);
+
     }
 
     public AuthResponse login(AuthRequest request, String clientIp) {
