@@ -13,8 +13,8 @@ public class AuditLog {
     private Long id;
 
     private Long userId;
-    private String action;        // "LOGIN", "LOGOUT", "CREATE_TASK", "DELETE_TASK", "UPDATE_TASK", "REGISTER"
-    private String details;       // например, "Task ID: 123"
+    private String action;
+    private String details;
     private String ipAddress;
     private LocalDateTime timestamp;
 
