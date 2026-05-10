@@ -6,12 +6,17 @@ function Register() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [consentGiven, setConsentGiven] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!consentGiven) {
+      alert('Деректерді өңдеуге келісім беру қажет');
+      return;
+    }
     try {
-      const res = await auth.register({ name, email, password });
+      const res = await auth.register({ name, email, password, consentGiven });
       localStorage.setItem('token', res.data.token);
       navigate('/tasks');
     } catch (err) {
@@ -39,7 +44,7 @@ function Register() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
-              placeholder="Аты Жөн"
+              placeholder="Аты-жөні"
               required
             />
           </div>
@@ -64,6 +69,19 @@ function Register() {
               placeholder="••••••••"
               required
             />
+          </div>
+          <div className="flex items-center">
+            <input
+              type="checkbox"
+              id="consent"
+              checked={consentGiven}
+              onChange={(e) => setConsentGiven(e.target.checked)}
+              className="mr-2"
+              required
+            />
+            <label htmlFor="consent" className="text-sm text-gray-600">
+              Менің деректерімді өңдеуге келісемін (GDPR)
+            </label>
           </div>
           <button
             type="submit"
