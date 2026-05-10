@@ -1,14 +1,21 @@
 package org.example.userservice.dto;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 import java.util.List;
 
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
 public class UserWithTasksExportDto {
     private UserExportDto user;
     private List<TaskExportDto> tasks;
+
+    public UserWithTasksExportDto() {}
+
+    public UserWithTasksExportDto(UserExportDto user, List<TaskExportDto> tasks) {
+        this.user = user;
+        this.tasks = tasks;
+    }
+
+    public UserExportDto getUser() { return user; }
+    public List<TaskExportDto> getTasks() { return tasks; }
+
+    public void setUser(UserExportDto user) { this.user = user; }
+    public void setTasks(List<TaskExportDto> tasks) { this.tasks = tasks; }
 }
