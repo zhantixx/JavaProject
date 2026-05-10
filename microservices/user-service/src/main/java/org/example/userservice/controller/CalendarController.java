@@ -26,11 +26,9 @@ public class CalendarController {
                                       @RequestParam(required = false) String description,
                                       @RequestParam String startDateTime,
                                       @RequestParam String endDateTime) {
-        // Получаем access token для текущего пользователя (который вошёл через Google)
         OAuth2AuthorizedClient client = authorizedClientService.loadAuthorizedClient(
                 "google", oAuth2User.getName());
         String accessToken = client.getAccessToken().getTokenValue();
-
         return calendarService.createEvent(accessToken, title, description, startDateTime, endDateTime);
     }
 }

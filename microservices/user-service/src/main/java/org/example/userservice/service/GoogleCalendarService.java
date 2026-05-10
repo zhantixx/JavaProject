@@ -3,8 +3,6 @@ package org.example.userservice.service;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
 
 @Service
 public class GoogleCalendarService {
@@ -12,16 +10,8 @@ public class GoogleCalendarService {
     private final RestTemplate restTemplate = new RestTemplate();
     private static final String CALENDAR_API_URL = "https://www.googleapis.com/calendar/v3/calendars/primary/events";
 
-    /**
-     * Создаёт событие в Google Calendar
-     * @param accessToken OAuth2 токен пользователя
-     * @param summary Название события (заголовок задачи)
-     * @param description Описание
-     * @param startDateTime ISO 8601 дата/время начала (можно взять дедлайн задачи)
-     * @param endDateTime ISO 8601 дата/время окончания
-     * @return ID созданного события
-     */
-    public String createEvent(String accessToken, String summary, String description, String startDateTime, String endDateTime) {
+    public String createEvent(String accessToken, String summary, String description,
+                              String startDateTime, String endDateTime) {
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(accessToken);
         headers.setContentType(MediaType.APPLICATION_JSON);
