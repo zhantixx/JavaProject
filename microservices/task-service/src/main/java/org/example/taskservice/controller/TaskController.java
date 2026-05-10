@@ -2,6 +2,7 @@ package org.example.taskservice.controller;
 
 import org.example.taskservice.dto.TaskRequest;
 import org.example.taskservice.dto.TaskResponse;
+import org.example.taskservice.dto.TaskStatusUpdateRequest;
 import org.example.taskservice.service.TaskService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -38,6 +39,14 @@ public class TaskController {
                                                    @RequestHeader(value = "X-User-Id", required = false) Long userId) {
         if (userId == null) userId = 1L;
         return ResponseEntity.ok(taskService.updateTask(id, request, userId));
+    }
+
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<TaskResponse> changeStatus(@PathVariable Long id,
+                                                     @RequestBody TaskStatusUpdateRequest request,
+                                                     @RequestHeader(value = "X-User-Id", required = false) Long userId) {
+        if (userId == null) userId = 1L;
+        return ResponseEntity.ok(taskService.changeStatus(id, request.getStatus(), userId));
     }
 
     @DeleteMapping("/{id}")

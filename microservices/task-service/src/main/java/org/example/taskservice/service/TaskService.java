@@ -11,7 +11,9 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -33,7 +35,7 @@ public class TaskService {
         task.setTitle(request.getTitle());
         task.setDescription(request.getDescription());
         task.setPriority(request.getPriority());
-        task.setStatus(request.getStatus() != null ? request.getStatus() : "PENDING");
+        task.setStatus(request.getStatus() != null ? request.getStatus() : "PLANNED");
         task.setDeadline(request.getDeadline());
         task.setUserId(userId);
 
@@ -68,6 +70,40 @@ public class TaskService {
         return mapToResponse(updated);
     }
 
+    public TaskResponse changeStatus(Long id, String newStatus, Long userId) {
+        Task task = taskRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Task not found"));
+
+        if (!task.getUserId().equals(userId)) {
+            throw new RuntimeException("You don't own this task");
+        }
+
+        String current = task.getStatus() == null ? "PLANNED" : task.getStatus().toUpperCase();
+        String target = newStatus == null ? current : newStatus.toUpperCase();
+
+        // Допустимые переходы
+        Set<String> allowedTargets =
+                switch (current) {
+                    case "PLANNED" -> Set.of("IN_PROGRESS", "CANCELED");
+                    case "IN_PROGRESS" -> Set.of("DONE", "BLOCKED", "CANCELED");
+                    case "BLOCKED" -> Set.of("IN_PROGRESS", "CANCELED");
+                    case "OVERDUE" -> Set.of("IN_PROGRESS", "DONE", "CANCELED");
+                    default -> Set.of(); // DONE/CANCELED — финальные
+                };
+
+        if (current.equals("DONE") || current.equals("CANCELED")) {
+            throw new IllegalArgumentException("Task is in a final state: " + current);
+        }
+        if (!allowedTargets.contains(target)) {
+            throw new IllegalArgumentException("Illegal status transition: " + current + " -> " + target);
+        }
+
+        task.setStatus(target);
+        Task updated = taskRepository.save(task);
+        sendAuditLog(userId, "CHANGE_STATUS", "Task ID: " + id + " -> " + target);
+        return mapToResponse(updated);
+    }
+
     public void deleteTask(Long id, Long userId) {
         Task task = taskRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Task not found"));
@@ -98,12 +134,22 @@ public class TaskService {
     }
 
     private TaskResponse mapToResponse(Task task) {
+        String status = task.getStatus();
+        LocalDateTime dl = task.getDeadline();
+        if (status == null) {
+            status = "PLANNED";
+        }
+        String normalized = status.toUpperCase();
+        if (!normalized.equals("DONE") && !normalized.equals("CANCELED")
+                && dl != null && dl.isBefore(LocalDateTime.now())) {
+            normalized = "OVERDUE";
+        }
         return new TaskResponse(
                 task.getId(),
                 task.getTitle(),
                 task.getDescription(),
                 task.getPriority(),
-                task.getStatus(),
+                normalized,
                 task.getDeadline(),
                 task.getUserId()
         );
