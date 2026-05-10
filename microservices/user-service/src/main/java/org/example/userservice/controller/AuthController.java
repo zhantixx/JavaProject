@@ -1,5 +1,6 @@
 package org.example.userservice.controller;
 
+import jakarta.servlet.http.HttpServletRequest;
 import org.example.userservice.dto.AuthRequest;
 import org.example.userservice.dto.AuthResponse;
 import org.example.userservice.dto.RegisterRequest;
@@ -19,12 +20,16 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
-        return ResponseEntity.ok(authService.register(request));
+    public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request,
+                                                 HttpServletRequest httpRequest) {
+        String clientIp = httpRequest.getRemoteAddr();
+        return ResponseEntity.ok(authService.register(request, clientIp));
     }
 
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@Valid @RequestBody AuthRequest request) {
-        return ResponseEntity.ok(authService.login(request));
+    public ResponseEntity<AuthResponse> login(@Valid @RequestBody AuthRequest request,
+                                              HttpServletRequest httpRequest) {
+        String clientIp = httpRequest.getRemoteAddr();
+        return ResponseEntity.ok(authService.login(request, clientIp));
     }
 }
