@@ -1,28 +1,37 @@
 package org.example.userservice.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.RequiredArgsConstructor;
-import org.example.userservice.dto.ExportDataDto;
 import org.example.userservice.dto.TaskExportDto;
+import org.example.userservice.dto.UserExportDto;
+import org.example.userservice.dto.UserWithTasksExportDto;
 import org.example.userservice.entity.User;
 import org.example.userservice.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
 
 @Service
-@RequiredArgsConstructor
 public class GdprExportService {
 
     private final UserRepository userRepository;
-    private final WebClient.Builder webClientBuilder;
+    private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
+    private final String taskServiceUrl;
 
-    @Value("${task.service.url:http://localhost:8082}")
-    private String taskServiceUrl;
+    public GdprExportService(UserRepository userRepository,
+                             RestTemplate restTemplate,
+                             ObjectMapper objectMapper,
+                             @Value("${task.service.url:http://localhost:8082}") String taskServiceUrl) {
+        this.userRepository = userRepository;
+        this.restTemplate = restTemplate;
+        this.objectMapper = objectMapper;
+        this.taskServiceUrl = taskServiceUrl;
+    }
 
     public byte[] exportUserData(Long userId) throws Exception {
         User user = userRepository.findById(userId)
@@ -30,22 +39,19 @@ public class GdprExportService {
 
         List<TaskExportDto> tasks = fetchUserTasks(userId);
 
-        ExportDataDto exportData = new ExportDataDto(
-                user.getId(),
-                user.getEmail(),
-                user.getName(),
-                tasks
-        );
+        UserExportDto userDto = new UserExportDto(user.getId(), user.getEmail(), user.getName());
+        UserWithTasksExportDto exportDto = new UserWithTasksExportDto(userDto, tasks);
 
-        return objectMapper.writeValueAsBytes(exportData);
+        return objectMapper.writeValueAsBytes(exportDto);
     }
 
     private List<TaskExportDto> fetchUserTasks(Long userId) {
-        return webClientBuilder.build()
-                .get()
-                .uri(taskServiceUrl + "/api/tasks?userId=" + userId)
-                .retrieve()
-                .bodyToMono(new ParameterizedTypeReference<List<TaskExportDto>>() {})
-                .block();
+        ResponseEntity<List<TaskExportDto>> response = restTemplate.exchange(
+                taskServiceUrl + "/api/tasks?userId=" + userId,
+                HttpMethod.GET,
+                null,
+                new ParameterizedTypeReference<List<TaskExportDto>>() {}
+        );
+        return response.getBody();
     }
 }
