@@ -4,7 +4,6 @@ import org.example.taskservice.dto.TaskRequest;
 import org.example.taskservice.dto.TaskResponse;
 import org.example.taskservice.entity.Task;
 import org.example.taskservice.repository.TaskRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -39,9 +38,7 @@ public class TaskService {
         task.setUserId(userId);
 
         Task saved = taskRepository.save(task);
-
         sendAuditLog(userId, "CREATE_TASK", "Task ID: " + saved.getId());
-
         return mapToResponse(saved);
     }
 
@@ -67,9 +64,7 @@ public class TaskService {
         task.setDeadline(request.getDeadline());
 
         Task updated = taskRepository.save(task);
-
         sendAuditLog(userId, "UPDATE_TASK", "Task ID: " + id);
-
         return mapToResponse(updated);
     }
 
@@ -82,7 +77,6 @@ public class TaskService {
         }
 
         taskRepository.delete(task);
-
         sendAuditLog(userId, "DELETE_TASK", "Task ID: " + id);
     }
 
@@ -93,7 +87,6 @@ public class TaskService {
 
     private void sendAuditLog(Long userId, String action, String details) {
         try {
-            // Формируем JSON-запрос для user-service
             AuditLogRequest auditRequest = new AuditLogRequest(userId, action, details);
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
