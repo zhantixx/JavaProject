@@ -22,4 +22,18 @@ public class AuditLog {
     protected void onCreate() {
         timestamp = LocalDateTime.now();
     }
+
+    public Long getId() { return id; }
+    public Long getUserId() { return userId; }
+    public String getAction() { return action; }
+    public String getDetails() { return details; }
+    public String getIpAddress() { return ipAddress; }
+    public LocalDateTime getTimestamp() { return timestamp; }
+
+    public void setId(Long id) { this.id = id; }
+    public void setUserId(Long userId) { this.userId = userId; }
+    public void setAction(String action) { this.action = action; }
+    public void setDetails(String details) { this.details = details; }
+    public void setIpAddress(String ipAddress) { this.ipAddress = ipAddress; }
+    public void setTimestamp(LocalDateTime timestamp) { this.timestamp = timestamp; }
 }
