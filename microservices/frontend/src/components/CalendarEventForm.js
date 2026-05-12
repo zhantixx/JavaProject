@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
-import { useAuth } from '../context/AuthProvider';
 import { useToast } from './Toast';
+import { calendar } from '../services/api';
 
 export default function CalendarEventForm() {
-  const { apiFetch } = useAuth();
   const toast = useToast();
   const [form, setForm] = useState({
     summary: '',
@@ -22,24 +21,21 @@ export default function CalendarEventForm() {
   const onSubmit = async (e) => {
     e.preventDefault();
     if (!form.summary || !form.startDateTime || !form.endDateTime) {
-      toast.error('Заполните обязательные поля');
+      toast.error('Міндетті өрістерді толтырыңыз');
       return;
     }
     setLoading(true);
     try {
-      const r = await apiFetch('/api/calendar/events', {
-        method: 'POST',
-        body: JSON.stringify({
-          summary: form.summary,
-          description: form.description,
-          startDateTime: form.startDateTime,
-          endDateTime: form.endDateTime,
-          timeZone: form.timeZone
-        })
+      const r = await calendar.createEvent({
+        summary: form.summary,
+        description: form.description,
+        startDateTime: form.startDateTime,
+        endDateTime: form.endDateTime,
+        timeZone: form.timeZone
       });
-      if (r.ok) {
-        const data = await r.json().catch(() => ({}));
-        toast.success(`Событие создано${data.id ? ` (id: ${data.id})` : ''}`);
+      if (r.status >= 200 && r.status < 300) {
+        const data = r.data || {};
+        toast.success(`Оқиға қосылды${data.id ? ` (id: ${data.id})` : ''}`);
         setForm({
           summary: '',
           description: '',
@@ -47,14 +43,11 @@ export default function CalendarEventForm() {
           endDateTime: '',
           timeZone: form.timeZone
         });
-      } else if (r.status === 401) {
-        toast.error('Авторизация истекла. Войдите заново.');
       } else {
-        const txt = await r.text();
-        toast.error(`Ошибка создания события: ${txt || r.status}`);
+        toast.error(`Оқиға қосу қатесі: ${r.status}`);
       }
     } catch (err) {
-      toast.error('Сетевая ошибка при создании события');
+      toast.error('Оқиға жасауда желілік не авторизация қатесі');
     } finally {
       setLoading(false);
     }
@@ -64,42 +57,42 @@ export default function CalendarEventForm() {
     <form onSubmit={onSubmit} className="space-y-5">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Заголовок*</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Тақырып*</label>
           <input
             name="summary"
             value={form.summary}
             onChange={onChange}
             className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-indigo-500"
-            placeholder="Напр. Встреча"
+            placeholder="Мысалы, Кездесу"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Часовой пояс</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Уақыт белдеуі</label>
           <input
             name="timeZone"
             value={form.timeZone}
             onChange={onChange}
             className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-indigo-500"
-            placeholder="UTC, Europe/Moscow ..."
+            placeholder="UTC, Europe/Almaty ..."
           />
         </div>
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Описание</label>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Сипаттама</label>
         <textarea
           name="description"
           value={form.description}
           onChange={onChange}
           rows={3}
           className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-indigo-500"
-          placeholder="Опционально"
+          placeholder="Қосымша ақпарат (міндетті емес)"
         />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Начало (RFC3339)*</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Басталуы*</label>
           <input
             type="datetime-local"
             name="startDateTime"
@@ -109,7 +102,7 @@ export default function CalendarEventForm() {
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Конец (RFC3339)*</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Аяқталуы*</label>
           <input
             type="datetime-local"
             name="endDateTime"
@@ -126,7 +119,7 @@ export default function CalendarEventForm() {
           disabled={loading}
           className="inline-flex items-center px-5 py-2.5 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-60"
         >
-          {loading ? 'Создание...' : 'Создать событие'}
+          {loading ? 'Қосылуда...' : 'Оқиға қосу'}
         </button>
       </div>
     </form>

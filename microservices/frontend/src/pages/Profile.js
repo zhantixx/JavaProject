@@ -1,9 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { useAuth } from '../context/AuthProvider';
 import { useToast } from '../components/Toast';
+import { profile } from '../services/api';
 
 export default function Profile() {
-  const { apiFetch, user, setUser } = useAuth();
   const toast = useToast();
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({ name: '', email: '' });
@@ -12,40 +11,33 @@ export default function Profile() {
     (async () => {
       try {
         setLoading(true);
-        const r = await apiFetch('/api/users/me');
-        if (r.ok) {
-          const me = await r.json();
-          setUser(me);
+        const r = await profile.me();
+        if (r.status >= 200 && r.status < 300) {
+          const me = r.data || {};
           setForm({ name: me.name || '', email: me.email || '' });
         } else {
-          toast.error('Не удалось загрузить профиль');
+          toast.error('Профильді жүктеу мүмкін болмады');
         }
       } catch {
-        toast.error('Ошибка при загрузке профиля');
+        toast.error('Профильді жүктеу қатесі');
       } finally {
         setLoading(false);
       }
     })();
-  }, [apiFetch, setUser, toast]);
+  }, [toast]);
 
   const onSave = async (e) => {
     e.preventDefault();
     try {
       setLoading(true);
-      const r = await apiFetch('/api/users/me', {
-        method: 'PATCH',
-        body: JSON.stringify({ name: form.name })
-      });
-      if (r.ok) {
-        toast.success('Профиль обновлён');
-        const updated = { ...(user || {}), name: form.name };
-        setUser(updated);
+      const r = await profile.updateMe({ name: form.name });
+      if (r.status >= 200 && r.status < 300) {
+        toast.success('Профиль жаңартылды');
       } else {
-        const txt = await r.text();
-        toast.error(`Не удалось обновить: ${txt || r.status}`);
+        toast.error(`Жаңарту мүмкін болмады: ${r.status}`);
       }
     } catch {
-      toast.error('Ошибка при обновлении профиля');
+      toast.error('Профильді жаңарту қатесі');
     } finally {
       setLoading(false);
     }
@@ -55,8 +47,8 @@ export default function Profile() {
     <div className="min-h-screen bg-gray-50 py-10 px-4">
       <div className="max-w-3xl mx-auto">
         <div className="bg-white rounded-2xl shadow-sm p-8">
-          <h1 className="text-2xl font-semibold text-gray-900 mb-6">Профиль</h1>
-          {loading && <div className="text-gray-500 mb-4">Загрузка...</div>}
+          <h1 className="text-2xl font-semibold text-gray-900 mb-6">Пайдаланушы профилі</h1>
+          {loading && <div className="text-gray-500 mb-4">Жүктелуде...</div>}
           <form onSubmit={onSave} className="space-y-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
@@ -68,13 +60,13 @@ export default function Profile() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Имя</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Аты</label>
               <input
                 type="text"
                 value={form.name}
                 onChange={(e) => setForm(f => ({ ...f, name: e.target.value }))}
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="Ваше имя"
+                placeholder="Сіздің атыңыз"
               />
             </div>
             <div className="flex justify-end">
@@ -83,7 +75,7 @@ export default function Profile() {
                 disabled={loading}
                 className="inline-flex items-center px-5 py-2.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-60"
               >
-                Сохранить
+                Сақтау
               </button>
             </div>
           </form>

@@ -1,7 +1,10 @@
 package org.example.userservice.config;
 
+import org.example.userservice.service.OAuthAccountService;
+import org.example.userservice.utils.JwtUtil;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -10,10 +13,14 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
 import org.springframework.security.oauth2.core.user.OAuth2User;
-import org.example.userservice.utils.JwtUtil;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.HttpStatusEntryPoint;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+
+import java.time.Instant;
 
 @Configuration
 @EnableWebSecurity
@@ -22,17 +29,29 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthFilter;
     private final JwtUtil jwtUtil;
+    private final OAuth2AuthorizedClientService authorizedClientService;
+    private final OAuthAccountService oAuthAccountService;
 
-    public SecurityConfig(JwtAuthenticationFilter jwtAuthFilter, JwtUtil jwtUtil) {
+    public SecurityConfig(JwtAuthenticationFilter jwtAuthFilter,
+                          JwtUtil jwtUtil,
+                          OAuth2AuthorizedClientService authorizedClientService,
+                          OAuthAccountService oAuthAccountService) {
         this.jwtAuthFilter = jwtAuthFilter;
         this.jwtUtil = jwtUtil;
+        this.authorizedClientService = authorizedClientService;
+        this.oAuthAccountService = oAuthAccountService;
     }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
-                .cors(cors -> {}) // включаем поддержку CORS со значениями по умолчанию (источник зададим отдельным бином)
+                // Для API: вместо редиректов отдаём 401
+                .exceptionHandling(ex -> ex.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
+                // Отключаем стандартные страницы логина/базовую аутентификацию
+                .formLogin(form -> form.disable())
+                .httpBasic(basic -> basic.disable())
+                .logout(logout -> logout.disable())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/register", "/api/auth/login", "/oauth2/**", "/login/oauth2/**").permitAll()
                         .anyRequest().authenticated()
@@ -41,6 +60,21 @@ public class SecurityConfig {
                         .successHandler((request, response, authentication) -> {
                             OAuth2User oauth2User = (OAuth2User) authentication.getPrincipal();
                             String email = oauth2User.getAttribute("email");
+
+                            // Сохраняем Google токены в БД
+                            try {
+                                String registrationId = "google";
+                                OAuth2AuthorizedClient client = authorizedClientService
+                                        .loadAuthorizedClient(registrationId, authentication.getName());
+                                if (client != null && client.getAccessToken() != null) {
+                                    String access = client.getAccessToken().getTokenValue();
+                                    Instant expires = client.getAccessToken().getExpiresAt();
+                                    String refresh = client.getRefreshToken() != null ? client.getRefreshToken().getTokenValue() : null;
+                                    oAuthAccountService.saveOrUpdateGoogle(email, access, refresh, expires);
+                                }
+                            } catch (Exception ignored) { }
+
+                            // Генерируем наш JWT и редиректим на фронт
                             String token = jwtUtil.generateToken(email, "USER");
                             response.sendRedirect("http://localhost:3000/oauth2/redirect?token=" + token);
                         })

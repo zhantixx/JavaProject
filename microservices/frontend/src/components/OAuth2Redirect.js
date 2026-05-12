@@ -1,22 +1,26 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-function OAuth2Redirect() {
+export default function OAuth2Redirect() {
+  const handledRef = useRef(false);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const token = params.get('token');
-    console.log('OAuth2Redirect token:', token);
+    if (handledRef.current) return;
+    handledRef.current = true;
+
+    const url = new URL(window.location.href);
+    const token = url.searchParams.get('token') ||
+                  new URLSearchParams(url.hash?.replace(/^#/, '')).get('token');
+
     if (token) {
       localStorage.setItem('token', token);
-      navigate('/tasks');
+      window.history.replaceState({}, '', '/');
+      window.location.replace('/tasks');
     } else {
-      navigate('/login');
+      navigate('/login', { replace: true });
     }
   }, [navigate]);
 
-  return <div className="text-center mt-10">Жүктелуде...</div>;
+  return null;
 }
-
-export default OAuth2Redirect;
