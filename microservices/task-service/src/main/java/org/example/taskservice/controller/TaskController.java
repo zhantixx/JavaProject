@@ -38,15 +38,14 @@ public class TaskController {
                                                            @RequestParam(value = "tagId", required = false) Long tagId) {
         if (userId == null) userId = 1L;
 
+        if (tagId != null) {
+            return ResponseEntity.ok(taskService.getUserTasksByTag(userId, tagId, from, to));
+        }
+
         List<TaskResponse> result = (from == null && to == null)
                 ? taskService.getUserTasks(userId)
                 : taskService.getUserTasks(userId, from, to);
 
-        if (tagId != null) {
-            result = result.stream()
-                    .filter(r -> r.getTagIds() != null && r.getTagIds().contains(tagId))
-                    .toList();
-        }
         return ResponseEntity.ok(result);
     }
 

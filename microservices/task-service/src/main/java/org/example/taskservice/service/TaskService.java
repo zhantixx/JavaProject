@@ -79,18 +79,15 @@ public class TaskService {
 
     // Выборка задач по тегу с опциональной фильтрацией по срокам
     public List<TaskResponse> getUserTasksByTag(Long userId, Long tagId, LocalDateTime from, LocalDateTime to) {
-        List<Task> tasks = taskRepository.findByUserIdAndTags_Id(userId, tagId);
-        if (from != null || to != null) {
-            tasks = tasks.stream()
-                    .filter(t -> {
-                        LocalDateTime dl = t.getDeadline();
-                        if (dl == null) return false;
-                        boolean ok = true;
-                        if (from != null) ok = ok && !dl.isBefore(from); // deadline >= from
-                        if (to != null) ok = ok && !dl.isAfter(to);     // deadline <= to
-                        return ok;
-                    })
-                    .collect(Collectors.toList());
+        List<Task> tasks;
+        if (from != null && to != null) {
+            tasks = taskRepository.findByUserIdAndTags_IdAndDeadlineBetween(userId, tagId, from, to);
+        } else if (from != null) {
+            tasks = taskRepository.findByUserIdAndTags_IdAndDeadlineGreaterThanEqual(userId, tagId, from);
+        } else if (to != null) {
+            tasks = taskRepository.findByUserIdAndTags_IdAndDeadlineLessThanEqual(userId, tagId, to);
+        } else {
+            tasks = taskRepository.findByUserIdAndTags_Id(userId, tagId);
         }
         return tasks.stream()
                 .map(this::mapToResponse)
@@ -166,6 +163,41 @@ public class TaskService {
 
         taskRepository.delete(task);
         sendAuditLog(userId, "DELETE_TASK", "Task ID: " + id);
+    }
+
+    // Прикрепить теги к задаче
+    public TaskResponse addTagsToTask(Long taskId, List<Long> tagIds, Long userId) {
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new RuntimeException("Task not found"));
+        if (!task.getUserId().equals(userId)) {
+            throw new RuntimeException("You don't own this task");
+        }
+        Set<Tag> tags = resolveTags(userId, tagIds);
+        task.getTags().addAll(tags);
+        Task saved = taskRepository.save(task);
+        sendAuditLog(userId, "ADD_TAGS", "Task ID: " + taskId + ", tags: " + tagIds);
+        return mapToResponse(saved);
+    }
+
+    // Открепить один тег от задачи
+    public TaskResponse removeTagFromTask(Long taskId, Long tagId, Long userId) {
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new RuntimeException("Task not found"));
+        if (!task.getUserId().equals(userId)) {
+            throw new RuntimeException("You don't own this task");
+        }
+        // Проверим принадлежность тега пользователю (если тег не принадлежит — считаем некорректным запросом)
+        tagRepository.findById(tagId)
+                .filter(t -> t.getUserId().equals(userId))
+                .orElseThrow(() -> new IllegalArgumentException("Tag not found or does not belong to user"));
+
+        boolean removed = task.getTags().removeIf(t -> t.getId().equals(tagId));
+        if (!removed) {
+            // Если тега не было на задаче — не считаем ошибкой, просто возвращаем текущее состояние
+        }
+        Task saved = taskRepository.save(task);
+        sendAuditLog(userId, "REMOVE_TAG", "Task ID: " + taskId + ", tag: " + tagId);
+        return mapToResponse(saved);
     }
 
     public void deleteAllUserTasks(Long userId) {

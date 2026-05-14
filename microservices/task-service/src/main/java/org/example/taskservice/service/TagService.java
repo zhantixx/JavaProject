@@ -2,7 +2,9 @@ package org.example.taskservice.service;
 
 import jakarta.persistence.EntityNotFoundException;
 import org.example.taskservice.entity.Tag;
+import org.example.taskservice.entity.Task;
 import org.example.taskservice.repository.TagRepository;
+import org.example.taskservice.repository.TaskRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,9 +19,11 @@ public class TagService {
     private static final Pattern HEX_COLOR = Pattern.compile("^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$");
 
     private final TagRepository tagRepository;
+    private final TaskRepository taskRepository;
 
-    public TagService(TagRepository tagRepository) {
+    public TagService(TagRepository tagRepository, TaskRepository taskRepository) {
         this.tagRepository = tagRepository;
+        this.taskRepository = taskRepository;
     }
 
     @Transactional(readOnly = true)
@@ -74,10 +78,22 @@ public class TagService {
     public void delete(Long userId, Long tagId) {
         requireUserId(userId);
         requireTagId(tagId);
-        long deleted = tagRepository.deleteByIdAndUserId(tagId, userId);
-        if (deleted == 0) {
-            throw new EntityNotFoundException("Tag not found");
+
+        // Убедимся, что тег существует и принадлежит пользователю
+        Tag tag = tagRepository.findByIdAndUserId(tagId, userId)
+                .orElseThrow(() -> new EntityNotFoundException("Tag not found"));
+
+        // Разлинковываем тег со всеми задачами пользователя
+        List<Task> tasksWithTag = taskRepository.findByUserIdAndTags_Id(userId, tagId);
+        if (!tasksWithTag.isEmpty()) {
+            for (Task task : tasksWithTag) {
+                task.getTags().removeIf(t -> t.getId().equals(tagId));
+            }
+            taskRepository.saveAll(tasksWithTag);
         }
+
+        // Удаляем тег
+        tagRepository.delete(tag);
     }
 
     private void requireUserId(Long userId) {
@@ -111,5 +127,5 @@ public class TagService {
             throw new IllegalArgumentException("color must be hex like #RRGGBB or #RGB");
         }
         return c;
-        }
+    }
 }

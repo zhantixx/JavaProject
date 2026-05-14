@@ -21,4 +21,13 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
 
     // Фильтрация по тегу: задачи пользователя, содержащие указанный тег
     List<Task> findByUserIdAndTags_Id(Long userId, Long tagId);
+
+    // По тегу и срокам: deadline в диапазоне [from, to]
+    List<Task> findByUserIdAndTags_IdAndDeadlineBetween(Long userId, Long tagId, LocalDateTime from, LocalDateTime to);
+
+    // По тегу: deadline >= from
+    List<Task> findByUserIdAndTags_IdAndDeadlineGreaterThanEqual(Long userId, Long tagId, LocalDateTime from);
+
+    // По тегу: deadline <= to
+    List<Task> findByUserIdAndTags_IdAndDeadlineLessThanEqual(Long userId, Long tagId, LocalDateTime to);
 }

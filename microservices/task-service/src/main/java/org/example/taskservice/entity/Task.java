@@ -6,7 +6,13 @@ import java.util.HashSet;
 import java.util.Set;
 
 @Entity
-@Table(name = "tasks")
+@Table(
+        name = "tasks",
+        indexes = {
+                @Index(name = "idx_tasks_user", columnList = "user_id"),
+                @Index(name = "idx_tasks_user_deadline", columnList = "user_id,deadline")
+        }
+)
 public class Task {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -16,7 +22,11 @@ public class Task {
     private String description;
     private String priority;
     private String status;
+
+    @Column(name = "deadline")
     private LocalDateTime deadline;
+
+    @Column(name = "user_id")
     private Long userId;
 
     // Связанные теги задачи
