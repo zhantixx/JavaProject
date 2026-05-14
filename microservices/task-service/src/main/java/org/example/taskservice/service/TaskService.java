@@ -51,6 +51,25 @@ public class TaskService {
                 .collect(Collectors.toList());
     }
 
+    // Новый метод фильтрации по срокам: deadline ∈ [from, to] (границы включительно), параметры опциональны
+    public List<TaskResponse> getUserTasks(Long userId, LocalDateTime from, LocalDateTime to) {
+        List<Task> tasks = taskRepository.findByUserId(userId);
+        return tasks.stream()
+                .filter(t -> {
+                    if (t.getDeadline() == null) return false;
+                    boolean ok = true;
+                    if (from != null) {
+                        ok = ok && !t.getDeadline().isBefore(from); // deadline >= from
+                    }
+                    if (to != null) {
+                        ok = ok && !t.getDeadline().isAfter(to);    // deadline <= to
+                    }
+                    return ok;
+                })
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
     public TaskResponse updateTask(Long id, TaskRequest request, Long userId) {
         Task task = taskRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Task not found"));
