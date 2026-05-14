@@ -77,6 +77,26 @@ public class TaskService {
                 .collect(Collectors.toList());
     }
 
+    // Выборка задач по тегу с опциональной фильтрацией по срокам
+    public List<TaskResponse> getUserTasksByTag(Long userId, Long tagId, LocalDateTime from, LocalDateTime to) {
+        List<Task> tasks = taskRepository.findByUserIdAndTags_Id(userId, tagId);
+        if (from != null || to != null) {
+            tasks = tasks.stream()
+                    .filter(t -> {
+                        LocalDateTime dl = t.getDeadline();
+                        if (dl == null) return false;
+                        boolean ok = true;
+                        if (from != null) ok = ok && !dl.isBefore(from); // deadline >= from
+                        if (to != null) ok = ok && !dl.isAfter(to);     // deadline <= to
+                        return ok;
+                    })
+                    .collect(Collectors.toList());
+        }
+        return tasks.stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
     public TaskResponse updateTask(Long id, TaskRequest request, Long userId) {
         Task task = taskRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Task not found"));
