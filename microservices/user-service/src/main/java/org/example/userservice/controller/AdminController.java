@@ -4,14 +4,17 @@ import org.example.userservice.dto.ChangeRoleRequest;
 import org.example.userservice.entity.AuditLog;
 import org.example.userservice.entity.User;
 import org.example.userservice.service.AdminService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.security.access.preAuthorize;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
 
@@ -21,9 +24,14 @@ import java.util.List;
 public class AdminController {
 
     private final AdminService adminService;
+    private final RestTemplate restTemplate;
 
-    public AdminController(AdminService adminService) {
+    @Value("${analytics.service.url:http://localhost:8083}")
+    private String analyticsServiceUrl;
+
+    public AdminController(AdminService adminService, RestTemplate restTemplate) {
         this.adminService = adminService;
+        this.restTemplate = restTemplate;
     }
 
     @GetMapping("/users/all")
@@ -72,5 +80,43 @@ public class AdminController {
                                    @RequestParam(defaultValue = "20") int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "timestamp"));
         return adminService.getAuditLogs(userId, pageable);
+    }
+
+    @GetMapping("/analytics/stats")
+    public AnalyticsStatsResponse getSystemStats() {
+        return restTemplate.getForObject(analyticsServiceUrl + "/api/analytics/stats", AnalyticsStatsResponse.class);
+    }
+
+    @GetMapping("/analytics/stats/{userId}")
+    public AnalyticsStatsResponse getUserStats(@PathVariable Long userId) {
+        return restTemplate.getForObject(analyticsServiceUrl + "/api/analytics/stats/" + userId, AnalyticsStatsResponse.class);
+    }
+
+    public static class AnalyticsStatsResponse {
+        private long totalTasks;
+        private long completedTasks;
+        private long pendingTasks;
+        private long overdueTasks;
+        private double completionRate;
+        private long highPriorityTasks;
+        private long mediumPriorityTasks;
+        private long lowPriorityTasks;
+
+        public long getTotalTasks() { return totalTasks; }
+        public void setTotalTasks(long totalTasks) { this.totalTasks = totalTasks; }
+        public long getCompletedTasks() { return completedTasks; }
+        public void setCompletedTasks(long completedTasks) { this.completedTasks = completedTasks; }
+        public long getPendingTasks() { return pendingTasks; }
+        public void setPendingTasks(long pendingTasks) { this.pendingTasks = pendingTasks; }
+        public long getOverdueTasks() { return overdueTasks; }
+        public void setOverdueTasks(long overdueTasks) { this.overdueTasks = overdueTasks; }
+        public double getCompletionRate() { return completionRate; }
+        public void setCompletionRate(double completionRate) { this.completionRate = completionRate; }
+        public long getHighPriorityTasks() { return highPriorityTasks; }
+        public void setHighPriorityTasks(long highPriorityTasks) { this.highPriorityTasks = highPriorityTasks; }
+        public long getMediumPriorityTasks() { return mediumPriorityTasks; }
+        public void setMediumPriorityTasks(long mediumPriorityTasks) { this.mediumPriorityTasks = mediumPriorityTasks; }
+        public long getLowPriorityTasks() { return lowPriorityTasks; }
+        public void setLowPriorityTasks(long lowPriorityTasks) { this.lowPriorityTasks = lowPriorityTasks; }
     }
 }

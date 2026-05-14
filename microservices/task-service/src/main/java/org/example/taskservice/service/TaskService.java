@@ -192,7 +192,14 @@ public class TaskService {
     }
 
     public void deleteAllUserTasks(Long userId) {
-        taskRepository.deleteByUserId(userId);
+        List<Task> tasks = taskRepository.findByUserId(userId);
+        if (!tasks.isEmpty()) {
+            for (Task t : tasks) {
+                t.getTags().clear();
+            }
+            taskRepository.saveAll(tasks);
+            taskRepository.deleteAll(tasks);
+        }
         sendAuditLog(userId, "DELETE_ALL_TASKS", "All tasks deleted for user");
     }
 
