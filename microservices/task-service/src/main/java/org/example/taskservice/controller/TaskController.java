@@ -34,12 +34,20 @@ public class TaskController {
                                                            @RequestParam(value = "from", required = false)
                                                            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
                                                            @RequestParam(value = "to", required = false)
-                                                           @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to) {
+                                                           @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to,
+                                                           @RequestParam(value = "tagId", required = false) Long tagId) {
         if (userId == null) userId = 1L;
-        if (from == null && to == null) {
-            return ResponseEntity.ok(taskService.getUserTasks(userId));
+
+        List<TaskResponse> result = (from == null && to == null)
+                ? taskService.getUserTasks(userId)
+                : taskService.getUserTasks(userId, from, to);
+
+        if (tagId != null) {
+            result = result.stream()
+                    .filter(r -> r.getTagIds() != null && r.getTagIds().contains(tagId))
+                    .toList();
         }
-        return ResponseEntity.ok(taskService.getUserTasks(userId, from, to));
+        return ResponseEntity.ok(result);
     }
 
     @PutMapping("/{id}")
