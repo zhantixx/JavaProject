@@ -156,6 +156,8 @@ public class TaskService {
             throw new RuntimeException("You don't own this task");
         }
 
+        task.getTags().clear();
+        taskRepository.save(task);
         taskRepository.delete(task);
         sendAuditLog(userId, "DELETE_TASK", "Task ID: " + id);
     }
