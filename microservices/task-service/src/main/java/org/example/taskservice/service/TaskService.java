@@ -2,7 +2,9 @@ package org.example.taskservice.service;
 
 import org.example.taskservice.dto.TaskRequest;
 import org.example.taskservice.dto.TaskResponse;
+import org.example.taskservice.entity.Tag;
 import org.example.taskservice.entity.Task;
+import org.example.taskservice.repository.TagRepository;
 import org.example.taskservice.repository.TaskRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
@@ -12,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -20,13 +23,15 @@ import java.util.stream.Collectors;
 public class TaskService {
 
     private final TaskRepository taskRepository;
+    private final TagRepository tagRepository;
     private final RestTemplate restTemplate;
 
     @Value("${user.service.url:http://localhost:8081}")
     private String userServiceUrl;
 
-    public TaskService(TaskRepository taskRepository, RestTemplate restTemplate) {
+    public TaskService(TaskRepository taskRepository, TagRepository tagRepository, RestTemplate restTemplate) {
         this.taskRepository = taskRepository;
+        this.tagRepository = tagRepository;
         this.restTemplate = restTemplate;
     }
 
@@ -38,6 +43,10 @@ public class TaskService {
         task.setStatus(request.getStatus() != null ? request.getStatus() : "PLANNED");
         task.setDeadline(request.getDeadline());
         task.setUserId(userId);
+
+        // Привязываем теги, если переданы
+        Set<Tag> tags = resolveTags(userId, request.getTagIds());
+        task.setTags(tags);
 
         Task saved = taskRepository.save(task);
         sendAuditLog(userId, "CREATE_TASK", "Task ID: " + saved.getId());
@@ -53,19 +62,17 @@ public class TaskService {
 
     // Новый метод фильтрации по срокам: deadline ∈ [from, to] (границы включительно), параметры опциональны
     public List<TaskResponse> getUserTasks(Long userId, LocalDateTime from, LocalDateTime to) {
-        List<Task> tasks = taskRepository.findByUserId(userId);
+        List<Task> tasks;
+        if (from != null && to != null) {
+            tasks = taskRepository.findByUserIdAndDeadlineBetween(userId, from, to);
+        } else if (from != null) {
+            tasks = taskRepository.findByUserIdAndDeadlineGreaterThanEqual(userId, from);
+        } else if (to != null) {
+            tasks = taskRepository.findByUserIdAndDeadlineLessThanEqual(userId, to);
+        } else {
+            tasks = taskRepository.findByUserId(userId);
+        }
         return tasks.stream()
-                .filter(t -> {
-                    if (t.getDeadline() == null) return false;
-                    boolean ok = true;
-                    if (from != null) {
-                        ok = ok && !t.getDeadline().isBefore(from); // deadline >= from
-                    }
-                    if (to != null) {
-                        ok = ok && !t.getDeadline().isAfter(to);    // deadline <= to
-                    }
-                    return ok;
-                })
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
@@ -83,6 +90,12 @@ public class TaskService {
         task.setPriority(request.getPriority());
         task.setStatus(request.getStatus());
         task.setDeadline(request.getDeadline());
+
+        // Если tagIds переданы — обновляем привязки тегов
+        if (request.getTagIds() != null) {
+            Set<Tag> tags = resolveTags(userId, request.getTagIds());
+            task.setTags(tags);
+        }
 
         Task updated = taskRepository.save(task);
         sendAuditLog(userId, "UPDATE_TASK", "Task ID: " + id);
@@ -140,6 +153,22 @@ public class TaskService {
         sendAuditLog(userId, "DELETE_ALL_TASKS", "All tasks deleted for user");
     }
 
+    private Set<Tag> resolveTags(Long userId, List<Long> tagIds) {
+        if (tagIds == null || tagIds.isEmpty()) {
+            return new HashSet<>();
+        }
+        List<Tag> tags = tagRepository.findAllById(tagIds);
+        long distinctRequested = tagIds.stream().distinct().count();
+        if (tags.size() != distinctRequested) {
+            throw new IllegalArgumentException("Some tags not found");
+        }
+        boolean allOwned = tags.stream().allMatch(t -> t.getUserId().equals(userId));
+        if (!allOwned) {
+            throw new IllegalArgumentException("Some tags don't belong to the user");
+        }
+        return new HashSet<>(tags);
+    }
+
     private void sendAuditLog(Long userId, String action, String details) {
         try {
             AuditLogRequest auditRequest = new AuditLogRequest(userId, action, details);
@@ -163,7 +192,7 @@ public class TaskService {
                 && dl != null && dl.isBefore(LocalDateTime.now())) {
             normalized = "OVERDUE";
         }
-        return new TaskResponse(
+        TaskResponse resp = new TaskResponse(
                 task.getId(),
                 task.getTitle(),
                 task.getDescription(),
@@ -172,6 +201,12 @@ public class TaskService {
                 task.getDeadline(),
                 task.getUserId()
         );
+        // Проставляем идентификаторы тегов
+        List<Long> tagIds = task.getTags() == null
+                ? List.of()
+                : task.getTags().stream().map(org.example.taskservice.entity.Tag::getId).toList();
+        resp.setTagIds(tagIds);
+        return resp;
     }
 
     private static class AuditLogRequest {
