@@ -5,10 +5,15 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import org.example.userservice.entity.Note;
+import org.example.userservice.entity.User;
+import org.example.userservice.repository.UserRepository;
 import org.example.userservice.service.NoteService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.net.URI;
 import java.time.OffsetDateTime;
@@ -19,14 +24,17 @@ import java.util.List;
 public class NoteController {
 
     private final NoteService noteService;
+    private final UserRepository userRepository;
 
-    public NoteController(NoteService noteService) {
+    public NoteController(NoteService noteService, UserRepository userRepository) {
         this.noteService = noteService;
+        this.userRepository = userRepository;
     }
 
     // Получить список заметок пользователя
     @GetMapping
     public List<NoteResponse> list(@PathVariable("userId") Long userId) {
+        requireOwner(userId);
         return noteService.listUserNotes(userId).stream()
                 .map(NoteResponse::from)
                 .toList();
@@ -36,6 +44,7 @@ public class NoteController {
     @PostMapping
     public ResponseEntity<NoteResponse> create(@PathVariable("userId") Long userId,
                                                @Valid @RequestBody NoteRequest request) {
+        requireOwner(userId);
         Note created = noteService.create(userId, request.title(), request.content());
         URI location = URI.create("/api/users/" + userId + "/notes/" + created.getId());
         return ResponseEntity.created(location).body(NoteResponse.from(created));
@@ -45,6 +54,7 @@ public class NoteController {
     @GetMapping("{id}")
     public NoteResponse get(@PathVariable("userId") Long userId,
                             @PathVariable("id") Long id) {
+        requireOwner(userId);
         return NoteResponse.from(noteService.getOwned(userId, id));
     }
 
@@ -53,6 +63,7 @@ public class NoteController {
     public NoteResponse update(@PathVariable("userId") Long userId,
                                @PathVariable("id") Long id,
                                @Valid @RequestBody UpdateNoteRequest request) {
+        requireOwner(userId);
         Note updated = noteService.update(userId, id, request.title(), request.content());
         return NoteResponse.from(updated);
     }
@@ -62,6 +73,7 @@ public class NoteController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable("userId") Long userId,
                        @PathVariable("id") Long id) {
+        requireOwner(userId);
         noteService.delete(userId, id);
     }
 
@@ -104,6 +116,20 @@ public class NoteController {
                     n.getCreatedAt(),
                     n.getUpdatedAt()
             );
+        }
+    }
+
+    // Проверка соответствия userId владельцу (из JWT берём email)
+    private void requireOwner(Long pathUserId) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || auth.getName() == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
+        }
+        String email = auth.getName();
+        User current = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
+        if (!current.getId().equals(pathUserId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN);
         }
     }
 }
