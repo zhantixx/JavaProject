@@ -1,6 +1,9 @@
 package org.example.userservice.controller;
 
 import jakarta.persistence.EntityNotFoundException;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import org.example.userservice.entity.Note;
 import org.example.userservice.service.NoteService;
 import org.springframework.http.HttpStatus;
@@ -32,7 +35,7 @@ public class NoteController {
     // Создать новую заметку
     @PostMapping
     public ResponseEntity<NoteResponse> create(@PathVariable("userId") Long userId,
-                                               @RequestBody NoteRequest request) {
+                                               @Valid @RequestBody NoteRequest request) {
         Note created = noteService.create(userId, request.title(), request.content());
         URI location = URI.create("/api/users/" + userId + "/notes/" + created.getId());
         return ResponseEntity.created(location).body(NoteResponse.from(created));
@@ -49,7 +52,7 @@ public class NoteController {
     @PutMapping("{id}")
     public NoteResponse update(@PathVariable("userId") Long userId,
                                @PathVariable("id") Long id,
-                               @RequestBody NoteRequest request) {
+                               @Valid @RequestBody UpdateNoteRequest request) {
         Note updated = noteService.update(userId, id, request.title(), request.content());
         return NoteResponse.from(updated);
     }
@@ -68,8 +71,20 @@ public class NoteController {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
     }
 
-    // DTO для входящих данных
-    public static record NoteRequest(String title, String content) {}
+    // DTO для входящих данных (создание)
+    public static record NoteRequest(
+            @Size(min = 1, max = 255, message = "Title length must be 1..255")
+            String title,
+            @NotNull(message = "Content is required")
+            String content
+    ) {}
+
+    // DTO для входящих данных (обновление) — поля опциональны, но если заданы, валидируются
+    public static record UpdateNoteRequest(
+            @Size(min = 1, max = 255, message = "Title length must be 1..255")
+            String title,
+            String content
+    ) {}
 
     // DTO для исходящих данных
     public static record NoteResponse(
