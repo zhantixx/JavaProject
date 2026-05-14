@@ -5,7 +5,13 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 
 @Entity
-@Table(name = "notes")
+@Table(
+        name = "notes",
+        indexes = {
+                @Index(name = "idx_notes_user", columnList = "user_id"),
+                @Index(name = "idx_notes_user_updated", columnList = "user_id,updated_at")
+        }
+)
 public class Note {
 
     @Id
@@ -13,7 +19,7 @@ public class Note {
     private Long id;
 
     // Владелец заметки (идентификатор пользователя)
-    @Column(nullable = false)
+    @Column(name = "user_id", nullable = false)
     private Long userId;
 
     @Column(nullable = false, length = 255)
@@ -23,10 +29,10 @@ public class Note {
     @Column(nullable = false)
     private String content;
 
-    @Column(nullable = false)
+    @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
 
-    @Column(nullable = false)
+    @Column(name = "updated_at", nullable = false)
     private OffsetDateTime updatedAt;
 
     protected Note() {
