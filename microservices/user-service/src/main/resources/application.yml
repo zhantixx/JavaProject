@@ -1,25 +1,50 @@
 server:
-  port: 8081
+  port: ${USER_SERVICE_PORT:8081}
 
 spring:
   application:
     name: user-service
+
   datasource:
     url: jdbc:postgresql://localhost:5432/user_db
     username: postgres
     password: 123456
     driver-class-name: org.postgresql.Driver
+
   jpa:
     hibernate:
       ddl-auto: update
     show-sql: true
     database-platform: org.hibernate.dialect.PostgreSQLDialect
 
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: 946199020421-gdj9kbnjvduak2asovjcub1vkfdneuqs.apps.googleusercontent.com
+            client-secret: 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
+            scope:
+              - email
+              - profile
+              - https://www.googleapis.com/auth/calendar
+        provider:
+          google:
+            authorization-uri: https://accounts.google.com/o/oauth2/auth
+            token-uri: https://oauth2.googleapis.com/token
+            user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
+            user-name-attribute: email
+
 jwt:
   secret: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
-  expiration: 86400000  # 24 часа в миллисекундах
+  expiration: 86400000
+
+task:
+  service:
+    url: http://localhost:8082
 
 logging:
   level:
     org.example.userservice: DEBUG
     org.springframework.security: DEBUG
+    org.springframework.web: DEBUG

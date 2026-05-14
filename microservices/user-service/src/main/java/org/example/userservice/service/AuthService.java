@@ -21,40 +21,55 @@ public class AuthService {
     private final JwtUtil jwtUtil;
     private final AuthenticationManager authenticationManager;
     private final UserDetailsService userDetailsService;
+    private final AuditService auditService;
 
     public AuthService(UserRepository userRepository,
                        PasswordEncoder passwordEncoder,
                        JwtUtil jwtUtil,
                        AuthenticationManager authenticationManager,
-                       UserDetailsService userDetailsService) {
+                       UserDetailsService userDetailsService,
+                       AuditService auditService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtUtil = jwtUtil;
         this.authenticationManager = authenticationManager;
         this.userDetailsService = userDetailsService;
+        this.auditService = auditService;
     }
 
-    public AuthResponse register(RegisterRequest request) {
+    public AuthResponse register(RegisterRequest request, String clientIp) {
+        // Разрешаем отсутствие явного согласия (null) — блокируем только явный отказ
+        if (request.getConsentGiven() != null && !request.getConsentGiven()) {
+            throw new RuntimeException("You must consent to data processing");
+        }
+
         User user = new User();
         user.setEmail(request.getEmail());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setName(request.getName());
         user.setRole("USER");
-
+        user.setConsentGiven(Boolean.TRUE.equals(request.getConsentGiven()));
         userRepository.save(user);
+
+        auditService.log(user.getId(), "REGISTER", "Email: " + user.getEmail(), clientIp);
 
         String token = jwtUtil.generateToken(user.getEmail());
         return new AuthResponse(token);
     }
 
-    public AuthResponse login(AuthRequest request) {
+    public AuthResponse login(AuthRequest request, String clientIp) {
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
         );
 
-        UserDetails userDetails = userDetailsService.loadUserByUsername(request.getEmail());
-        String token = jwtUtil.generateToken(userDetails.getUsername());
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        auditService.log(user.getId(), "LOGIN", null, clientIp);
 
+        UserDetails userDetails = userDetailsService.loadUserByUsername(request.getEmail());
+        String token = "USER".equals(user.getRole())
+                ? jwtUtil.generateToken(userDetails.getUsername())
+                : jwtUtil.generateToken(userDetails.getUsername(), user.getRole());
         return new AuthResponse(token);
     }
 }

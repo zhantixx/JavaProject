@@ -1,5 +1,5 @@
 server:
-  port: 8085
+  port: ${ANALYTICS_SERVICE_PORT:8085}
 
 spring:
   application:
@@ -14,6 +14,10 @@ spring:
       ddl-auto: update
     show-sql: true
     database-platform: org.hibernate.dialect.PostgreSQLDialect
+
+task:
+  service:
+    url: ${TASK_SERVICE_URL:http://localhost:8082}
 
 logging:
   level:

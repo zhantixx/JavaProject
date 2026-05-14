@@ -18,3 +18,7 @@ spring:
 logging:
   level:
     org.example.taskservice: DEBUG
+
+user:
+  service:
+    url: http://localhost:8081

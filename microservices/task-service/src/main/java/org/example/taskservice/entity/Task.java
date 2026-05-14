@@ -2,9 +2,17 @@ package org.example.taskservice.entity;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
-@Table(name = "tasks")
+@Table(
+        name = "tasks",
+        indexes = {
+                @Index(name = "idx_tasks_user", columnList = "user_id"),
+                @Index(name = "idx_tasks_user_deadline", columnList = "user_id,deadline")
+        }
+)
 public class Task {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -14,8 +22,23 @@ public class Task {
     private String description;
     private String priority;
     private String status;
+
+    @Column(name = "deadline")
     private LocalDateTime deadline;
+
+    @Column(name = "user_id")
     private Long userId;
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "task_tags",
+            joinColumns = @JoinColumn(name = "task_id"),
+            inverseJoinColumns = @JoinColumn(name = "tag_id"),
+            uniqueConstraints = {
+                    @UniqueConstraint(name = "uk_task_tag", columnNames = {"task_id", "tag_id"})
+            }
+    )
+    private Set<Tag> tags = new HashSet<>();
 
     public Task() {}
 
@@ -42,4 +65,7 @@ public class Task {
     public void setDeadline(LocalDateTime deadline) { this.deadline = deadline; }
     public Long getUserId() { return userId; }
     public void setUserId(Long userId) { this.userId = userId; }
+
+    public Set<Tag> getTags() { return tags; }
+    public void setTags(Set<Tag> tags) { this.tags = tags != null ? tags : new HashSet<>(); }
 }

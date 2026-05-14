@@ -4,6 +4,7 @@ public class RegisterRequest {
     private String email;
     private String password;
     private String name;
+    private Boolean consentGiven;
 
     public String getEmail() {
         return email;
@@ -27,5 +28,13 @@ public class RegisterRequest {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public Boolean getConsentGiven() {
+        return consentGiven;
+    }
+
+    public void setConsentGiven(Boolean consentGiven) {
+        this.consentGiven = consentGiven;
     }
 }
