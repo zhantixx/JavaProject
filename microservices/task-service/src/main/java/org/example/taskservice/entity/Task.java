@@ -2,6 +2,8 @@ package org.example.taskservice.entity;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "tasks")
@@ -16,6 +18,18 @@ public class Task {
     private String status;
     private LocalDateTime deadline;
     private Long userId;
+
+    // Связанные теги задачи
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "task_tags",
+            joinColumns = @JoinColumn(name = "task_id"),
+            inverseJoinColumns = @JoinColumn(name = "tag_id"),
+            uniqueConstraints = {
+                    @UniqueConstraint(name = "uk_task_tag", columnNames = {"task_id", "tag_id"})
+            }
+    )
+    private Set<Tag> tags = new HashSet<>();
 
     public Task() {}
 
@@ -42,4 +56,7 @@ public class Task {
     public void setDeadline(LocalDateTime deadline) { this.deadline = deadline; }
     public Long getUserId() { return userId; }
     public void setUserId(Long userId) { this.userId = userId; }
+
+    public Set<Tag> getTags() { return tags; }
+    public void setTags(Set<Tag> tags) { this.tags = tags != null ? tags : new HashSet<>(); }
 }
