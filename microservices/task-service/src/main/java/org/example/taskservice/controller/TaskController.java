@@ -4,9 +4,11 @@ import org.example.taskservice.dto.TaskRequest;
 import org.example.taskservice.dto.TaskResponse;
 import org.example.taskservice.dto.TaskStatusUpdateRequest;
 import org.example.taskservice.service.TaskService;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
@@ -28,9 +30,16 @@ public class TaskController {
     }
 
     @GetMapping
-    public ResponseEntity<List<TaskResponse>> getUserTasks(@RequestHeader(value = "X-User-Id", required = false) Long userId) {
+    public ResponseEntity<List<TaskResponse>> getUserTasks(@RequestHeader(value = "X-User-Id", required = false) Long userId,
+                                                           @RequestParam(value = "from", required = false)
+                                                           @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
+                                                           @RequestParam(value = "to", required = false)
+                                                           @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to) {
         if (userId == null) userId = 1L;
-        return ResponseEntity.ok(taskService.getUserTasks(userId));
+        if (from == null && to == null) {
+            return ResponseEntity.ok(taskService.getUserTasks(userId));
+        }
+        return ResponseEntity.ok(taskService.getUserTasks(userId, from, to));
     }
 
     @PutMapping("/{id}")
