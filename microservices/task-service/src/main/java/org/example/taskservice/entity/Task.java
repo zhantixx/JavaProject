@@ -29,7 +29,6 @@ public class Task {
     @Column(name = "user_id")
     private Long userId;
 
-    // Связанные теги задачи
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
             name = "task_tags",

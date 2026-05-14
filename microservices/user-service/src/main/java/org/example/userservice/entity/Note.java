@@ -18,7 +18,6 @@ public class Note {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Владелец заметки (идентификатор пользователя)
     @Column(name = "user_id", nullable = false)
     private Long userId;
 
@@ -36,7 +35,6 @@ public class Note {
     private OffsetDateTime updatedAt;
 
     protected Note() {
-        // JPA
     }
 
     public Note(Long userId, String title, String content) {
@@ -49,7 +47,7 @@ public class Note {
     protected void onCreate() {
         OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
         this.createdAt = now;
-        this.updatedAt = now;
+               this.updatedAt = now;
     }
 
     @PreUpdate

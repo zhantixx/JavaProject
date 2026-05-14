@@ -1,6 +1,7 @@
 package org.example.userservice.controller;
 
 import org.example.userservice.dto.ChangeRoleRequest;
+import org.example.userservice.entity.AuditLog;
 import org.example.userservice.entity.User;
 import org.example.userservice.service.AdminService;
 import org.springframework.data.domain.Page;
@@ -25,13 +26,11 @@ public class AdminController {
         this.adminService = adminService;
     }
 
-    // Список пользователей (без пагинации)
     @GetMapping("/users/all")
     public List<User> getAllUsers() {
         return adminService.getAllUsers();
     }
 
-    // Список пользователей с пагинацией и сортировкой
     @GetMapping("/users")
     public Page<User> getUsers(@RequestParam(defaultValue = "0") int page,
                                @RequestParam(defaultValue = "20") int size,
@@ -44,18 +43,34 @@ public class AdminController {
         return adminService.getUsers(pageable);
     }
 
-    // Один пользователь по id
     @GetMapping("/users/{id}")
     public User getUser(@PathVariable Long id) {
         return adminService.getUserById(id);
     }
 
-    // Смена роли через JSON-тело, с учетом ABAC-правил
     @PatchMapping("/users/{id}/role")
     public void changeRole(@PathVariable Long id,
                            @RequestBody ChangeRoleRequest request,
                            @AuthenticationPrincipal UserDetails adminPrincipal) {
         String actorEmail = adminPrincipal != null ? adminPrincipal.getUsername() : null;
         adminService.changeRole(id, request.getRole(), actorEmail);
+    }
+
+    @PostMapping("/users/{id}/block")
+    public void blockUser(@PathVariable Long id) {
+        adminService.blockUser(id);
+    }
+
+    @PostMapping("/users/{id}/unblock")
+    public void unblockUser(@PathVariable Long id) {
+        adminService.unblockUser(id);
+    }
+
+    @GetMapping("/audit")
+    public Page<AuditLog> getAudit(@RequestParam(required = false) Long userId,
+                                   @RequestParam(defaultValue = "0") int page,
+                                   @RequestParam(defaultValue = "20") int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "timestamp"));
+        return adminService.getAuditLogs(userId, pageable);
     }
 }

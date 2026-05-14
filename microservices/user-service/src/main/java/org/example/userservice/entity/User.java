@@ -24,6 +24,9 @@ public class User {
     @Column(name = "consent_given")
     private Boolean consentGiven = false;
 
+    @Column(name = "active")
+    private Boolean active = true;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
@@ -59,6 +62,9 @@ public class User {
 
     public Boolean getConsentGiven() { return consentGiven; }
     public void setConsentGiven(Boolean consentGiven) { this.consentGiven = consentGiven; }
+
+    public Boolean getActive() { return active; }
+    public void setActive(Boolean active) { this.active = active; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

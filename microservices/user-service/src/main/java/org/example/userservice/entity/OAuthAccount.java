@@ -17,7 +17,7 @@ public class OAuthAccount {
     private String email;
 
     @Column(nullable = false, length = 32)
-    private String provider; // "google"
+    private String provider;
 
     @Column(length = 2048)
     private String accessToken;

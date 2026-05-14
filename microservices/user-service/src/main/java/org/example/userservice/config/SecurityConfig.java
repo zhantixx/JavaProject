@@ -49,11 +49,9 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .cors(cors -> {}) // включаем CORS, настройки в CorsConfigurationSource
+                .cors(cors -> {})
                 .csrf(csrf -> csrf.disable())
-                // Для API: вместо редиректов отдаём 401
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
-                // Отключаем стандартные страницы логина/базовую аутентификацию
                 .formLogin(form -> form.disable())
                 .httpBasic(basic -> basic.disable())
                 .logout(logout -> logout.disable())
@@ -66,7 +64,6 @@ public class SecurityConfig {
                             OAuth2User oauth2User = (OAuth2User) authentication.getPrincipal();
                             String email = oauth2User.getAttribute("email");
 
-                            // Сохраняем Google токены в БД
                             try {
                                 String registrationId = "google";
                                 OAuth2AuthorizedClient client = authorizedClientService
@@ -79,7 +76,6 @@ public class SecurityConfig {
                                 }
                             } catch (Exception ignored) { }
 
-                            // Генерируем наш JWT и редиректим на фронт
                             String token = jwtUtil.generateToken(email, "USER");
                             response.sendRedirect("http://localhost:3000/oauth2/redirect?token=" + token);
                         })

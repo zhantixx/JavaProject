@@ -11,7 +11,6 @@ public class TaskResponse {
     private String status;
     private LocalDateTime deadline;
     private Long userId;
-    // Идентификаторы тегов, привязанных к задаче
     private List<Long> tagIds;
 
     public TaskResponse() {}

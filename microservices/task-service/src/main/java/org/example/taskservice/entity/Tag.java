@@ -19,15 +19,12 @@ public class Tag {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Владелец тега (идентификатор пользователя)
     @Column(name = "user_id", nullable = false)
     private Long userId;
 
-    // Название тега (уникально в рамках одного пользователя)
     @Column(nullable = false, length = 64)
     private String name;
 
-    // Опциональный цвет тега в hex (например, #FF9900)
     @Column(length = 16)
     private String color;
 
@@ -38,7 +35,6 @@ public class Tag {
     private LocalDateTime updatedAt;
 
     protected Tag() {
-        // JPA
     }
 
     public Tag(Long userId, String name, String color) {

@@ -20,7 +20,6 @@ public class TagController {
         this.tagService = tagService;
     }
 
-    // Список тегов пользователя
     @GetMapping
     public ResponseEntity<List<TagResponse>> list(@RequestHeader(value = "X-User-Id", required = false) Long userId) {
         if (userId == null) userId = 1L;
@@ -30,7 +29,6 @@ public class TagController {
         return ResponseEntity.ok(result);
     }
 
-    // Создать тег
     @PostMapping
     public ResponseEntity<TagResponse> create(@RequestHeader(value = "X-User-Id", required = false) Long userId,
                                               @RequestBody TagRequest request) {
@@ -39,7 +37,6 @@ public class TagController {
         return ResponseEntity.status(HttpStatus.CREATED).body(TagResponse.from(created));
     }
 
-    // Получить тег по id (с проверкой принадлежности)
     @GetMapping("{id}")
     public ResponseEntity<TagResponse> get(@PathVariable("id") Long id,
                                            @RequestHeader(value = "X-User-Id", required = false) Long userId) {
@@ -48,7 +45,6 @@ public class TagController {
         return ResponseEntity.ok(TagResponse.from(tag));
     }
 
-    // Обновить тег (имя/цвет)
     @PutMapping("{id}")
     public ResponseEntity<TagResponse> update(@PathVariable("id") Long id,
                                               @RequestHeader(value = "X-User-Id", required = false) Long userId,
@@ -58,7 +54,6 @@ public class TagController {
         return ResponseEntity.ok(TagResponse.from(updated));
     }
 
-    // Удалить тег
     @DeleteMapping("{id}")
     public ResponseEntity<Void> delete(@PathVariable("id") Long id,
                                        @RequestHeader(value = "X-User-Id", required = false) Long userId) {
@@ -67,23 +62,19 @@ public class TagController {
         return ResponseEntity.noContent().build();
     }
 
-    // 404 — не найдено
     @ExceptionHandler(EntityNotFoundException.class)
     public ResponseEntity<String> handleNotFound(EntityNotFoundException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Not found");
     }
 
-    // 400 — неверные данные/конфликт имени
     @ExceptionHandler({IllegalArgumentException.class, IllegalStateException.class})
     public ResponseEntity<String> handleBadRequest(RuntimeException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
     }
 
-    // DTO запросов
     public static record TagRequest(String name, String color) {}
     public static record TagUpdateRequest(String name, String color) {}
 
-    // DTO ответа
     public static record TagResponse(
             Long id,
             Long userId,

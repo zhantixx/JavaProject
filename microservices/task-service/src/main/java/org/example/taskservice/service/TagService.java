@@ -79,11 +79,9 @@ public class TagService {
         requireUserId(userId);
         requireTagId(tagId);
 
-        // Убедимся, что тег существует и принадлежит пользователю
         Tag tag = tagRepository.findByIdAndUserId(tagId, userId)
                 .orElseThrow(() -> new EntityNotFoundException("Tag not found"));
 
-        // Разлинковываем тег со всеми задачами пользователя
         List<Task> tasksWithTag = taskRepository.findByUserIdAndTags_Id(userId, tagId);
         if (!tasksWithTag.isEmpty()) {
             for (Task task : tasksWithTag) {
@@ -92,7 +90,6 @@ public class TagService {
             taskRepository.saveAll(tasksWithTag);
         }
 
-        // Удаляем тег
         tagRepository.delete(tag);
     }
 
