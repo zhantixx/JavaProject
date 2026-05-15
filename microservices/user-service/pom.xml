@@ -63,7 +63,6 @@
             <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
 
-        <!-- Byte Buddy -->
         <dependency>
             <groupId>net.bytebuddy</groupId>
             <artifactId>byte-buddy</artifactId>
@@ -74,7 +73,6 @@
             <scope>runtime</scope>
         </dependency>
 
-        <!-- Google Calendar -->
         <dependency>
             <groupId>com.google.api-client</groupId>
             <artifactId>google-api-client</artifactId>
@@ -86,7 +84,6 @@
             <version>1.39.0</version>
         </dependency>
 
-        <!-- Тесты -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
