@@ -1,4 +1,13 @@
-version: '3.8'
+networks:
+  assistant-net:
+    driver: bridge
+
+volumes:
+  postgres_user_data:
+  postgres_task_data:
+  postgres_notification_data:
+  postgres_analytics_data:
+  redis_data:
 
 services:
   postgres-user:
@@ -61,7 +70,7 @@ services:
     image: redis:alpine
     container_name: redis
     ports:
-      - "6380:6380"
+      - "6380:6379"          # хост:контейнер (контейнер слушает 6379)
     volumes:
       - redis_data:/data
     networks:
@@ -184,21 +193,25 @@ services:
       - notification-service
       - analytics-service
     environment:
-      USER_SERVICE_URL: http://user-service:8081
-      TASK_SERVICE_URL: http://task-service:8082
-      JWT_SECRET: ${JWT_SECRET}
+      - JWT_SECRET=${JWT_SECRET}
+      - SPRING_CLOUD_GATEWAY_ROUTES[0].id=user-service
+      - SPRING_CLOUD_GATEWAY_ROUTES[0].uri=http://user-service:8081
+      - SPRING_CLOUD_GATEWAY_ROUTES[0].predicates[0]=Path=/api/auth/**
+      - SPRING_CLOUD_GATEWAY_ROUTES[0].predicates[1]=Path=/api/users/**
+      - SPRING_CLOUD_GATEWAY_ROUTES[0].predicates[2]=Path=/api/calendar/events
+      - SPRING_CLOUD_GATEWAY_ROUTES[1].id=task-service
+      - SPRING_CLOUD_GATEWAY_ROUTES[1].uri=http://task-service:8086
+      - SPRING_CLOUD_GATEWAY_ROUTES[1].predicates[0]=Path=/api/tasks/**
+      - SPRING_CLOUD_GATEWAY_ROUTES[2].id=ai-service
+      - SPRING_CLOUD_GATEWAY_ROUTES[2].uri=http://ai-service:8083
+      - SPRING_CLOUD_GATEWAY_ROUTES[2].predicates[0]=Path=/api/chat/**
+      - SPRING_CLOUD_GATEWAY_ROUTES[3].id=notification-service
+      - SPRING_CLOUD_GATEWAY_ROUTES[3].uri=http://notification-service:8084
+      - SPRING_CLOUD_GATEWAY_ROUTES[3].predicates[0]=Path=/api/notifications/**
+      - SPRING_CLOUD_GATEWAY_ROUTES[4].id=analytics-service
+      - SPRING_CLOUD_GATEWAY_ROUTES[4].uri=http://analytics-service:8085
+      - SPRING_CLOUD_GATEWAY_ROUTES[4].predicates[0]=Path=/api/analytics/**
     ports:
       - "8080:8080"
     networks:
       - assistant-net
-
-networks:
-  assistant-net:
-    driver: bridge
-
-volumes:
-  postgres_user_data:
-  postgres_task_data:
-  postgres_notification_data:
-  postgres_analytics_data:
-  redis_data:
