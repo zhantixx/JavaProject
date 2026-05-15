@@ -26,6 +26,7 @@ public class AuthService {
     private final UserDetailsService userDetailsService;
     private final AuditService auditService;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final LoginAttemptService loginAttemptService;
 
     public AuthService(UserRepository userRepository,
                        PasswordEncoder passwordEncoder,
@@ -33,7 +34,8 @@ public class AuthService {
                        AuthenticationManager authenticationManager,
                        UserDetailsService userDetailsService,
                        AuditService auditService,
-                       RefreshTokenRepository refreshTokenRepository) {
+                       RefreshTokenRepository refreshTokenRepository,
+                       LoginAttemptService loginAttemptService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtUtil = jwtUtil;
@@ -41,6 +43,7 @@ public class AuthService {
         this.userDetailsService = userDetailsService;
         this.auditService = auditService;
         this.refreshTokenRepository = refreshTokenRepository;
+        this.loginAttemptService = loginAttemptService;
     }
 
     public AuthResponse register(RegisterRequest request, String clientIp) {
@@ -67,15 +70,27 @@ public class AuthService {
     }
 
     public AuthResponse login(AuthRequest request, String clientIp) {
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
-        );
+        String email = request.getEmail();
 
-        User user = userRepository.findByEmail(request.getEmail())
+        if (loginAttemptService.isBlocked(email)) {
+            throw new RuntimeException("Too many failed attempts. Please try again later.");
+        }
+
+        try {
+            authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(email, request.getPassword())
+            );
+            loginAttemptService.loginSucceeded(email);
+        } catch (Exception e) {
+            loginAttemptService.loginFailed(email);
+            throw e;
+        }
+
+        User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         auditService.log(user.getId(), "LOGIN", null, clientIp);
 
-        UserDetails userDetails = userDetailsService.loadUserByUsername(request.getEmail());
+        UserDetails userDetails = userDetailsService.loadUserByUsername(email);
         String token = "USER".equals(user.getRole())
                 ? jwtUtil.generateToken(userDetails.getUsername())
                 : jwtUtil.generateToken(userDetails.getUsername(), user.getRole());
