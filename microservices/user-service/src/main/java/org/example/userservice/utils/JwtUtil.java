@@ -96,4 +96,8 @@ public class JwtUtil {
             return false;
         }
     }
+
+    public Long getRefreshExpiration() {
+        return refreshExpiration;
+    }
 }
