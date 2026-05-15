@@ -1,0 +1,202 @@
+version: '3.8'
+
+services:
+  postgres-user:
+    image: postgres:15
+    container_name: postgres-user
+    environment:
+      POSTGRES_DB: user_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 123456
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_user_data:/var/lib/postgresql/data
+    networks:
+      - assistant-net
+
+  postgres-task:
+    image: postgres:15
+    container_name: postgres-task
+    environment:
+      POSTGRES_DB: task_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 123456
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_task_data:/var/lib/postgresql/data
+    networks:
+      - assistant-net
+
+  postgres-notification:
+    image: postgres:15
+    container_name: postgres-notification
+    environment:
+      POSTGRES_DB: notification_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 123456
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres_notification_data:/var/lib/postgresql/data
+    networks:
+      - assistant-net
+
+  postgres-analytics:
+    image: postgres:15
+    container_name: postgres-analytics
+    environment:
+      POSTGRES_DB: analytics_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 123456
+    ports:
+      - "5435:5432"
+    volumes:
+      - postgres_analytics_data:/var/lib/postgresql/data
+    networks:
+      - assistant-net
+
+  redis:
+    image: redis:alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - assistant-net
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+    ports:
+      - "2181:2181"
+    networks:
+      - assistant-net
+
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    container_name: kafka
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    ports:
+      - "9092:9092"
+    networks:
+      - assistant-net
+
+  user-service:
+    build: ./user-service
+    container_name: user-service
+    depends_on:
+      - postgres-user
+      - redis
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-user:5432/user_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: 123456
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      JWT_SECRET: ${JWT_SECRET}
+      TASK_SERVICE_URL: http://task-service:8082
+    ports:
+      - "8081:8081"
+    networks:
+      - assistant-net
+
+  task-service:
+    build: ./task-service
+    container_name: task-service
+    depends_on:
+      - postgres-task
+      - redis
+      - user-service
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-task:5432/task_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: 123456
+      SPRING_REDIS_HOST: redis
+      USER_SERVICE_URL: http://user-service:8081
+    ports:
+      - "8082:8082"
+    networks:
+      - assistant-net
+
+  ai-service:
+    build: ./ai-service
+    container_name: ai-service
+    environment:
+      DEEPSEEK_API_KEY: sk-8be64313378e431fbb46aaec00c3d191
+      DEEPSEEK_API_URL: https://api.deepseek.com/v1/chat/completions
+      DEEPSEEK_MODEL: deepseek-chat
+    ports:
+      - "8083:8083"
+    networks:
+      - assistant-net
+
+  notification-service:
+    build: ./notification-service
+    container_name: notification-service
+    depends_on:
+      - kafka
+      - postgres-notification
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-notification:5432/notification_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: 123456
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    ports:
+      - "8084:8084"
+    networks:
+      - assistant-net
+
+  analytics-service:
+    build: ./analytics-service
+    container_name: analytics-service
+    depends_on:
+      - postgres-analytics
+      - task-service
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-analytics:5432/analytics_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: 123456
+      TASK_SERVICE_URL: http://task-service:8082
+    ports:
+      - "8085:8085"
+    networks:
+      - assistant-net
+
+  api-gateway:
+    build: ./api-gateway
+    container_name: api-gateway
+    depends_on:
+      - user-service
+      - task-service
+      - ai-service
+      - notification-service
+      - analytics-service
+    environment:
+      USER_SERVICE_URL: http://user-service:8081
+      TASK_SERVICE_URL: http://task-service:8082
+      JWT_SECRET: ${JWT_SECRET}
+    ports:
+      - "8080:8080"
+    networks:
+      - assistant-net
+
+networks:
+  assistant-net:
+    driver: bridge
+
+volumes:
+  postgres_user_data:
+  postgres_task_data:
+  postgres_notification_data:
+  postgres_analytics_data:
+  redis_data:
