@@ -20,7 +20,7 @@ function formatISODate(d) {
 export default function CalendarPage() {
   const toast = useToast();
   const [current, setCurrent] = useState(new Date());
-  const [items, setItems] = useState([]); // задачи
+  const [items, setItems] = useState([]);
   const [selectedDate, setSelectedDate] = useState(null);
 
   const icsUrl = calendar.icsUrl();
@@ -40,8 +40,7 @@ export default function CalendarPage() {
     const start = startOfMonth(current);
     const end = endOfMonth(current);
     const days = [];
-    // пустые ячейки до первого дня
-    const offset = (start.getDay() + 6) % 7; // Пн=0
+    const offset = (start.getDay() + 6) % 7;
     for (let i = 0; i < offset; i++) days.push(null);
     for (let d = 1; d <= end.getDate(); d++) {
       days.push(new Date(current.getFullYear(), current.getMonth(), d));
@@ -76,15 +75,31 @@ export default function CalendarPage() {
   const weekdayLabels = ['Дс', 'Сс', 'Ср', 'Бс', 'Жм', 'Сб', 'Жс'];
 
   return (
-    <div className="min-h-screen bg-gray-50 py-10 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50 py-10 px-4">
       <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm p-6">
-          <div className="flex items-center justify-between mb-4">
-            <button onClick={prevMonth} className="px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200">←</button>
+        <div className="lg:col-span-2 rounded-2xl bg-white/80 backdrop-blur p-6 ring-1 ring-gray-100 shadow-sm">
+          <div className="flex items-center justify-between mb-5">
+            <button
+              onClick={prevMonth}
+              className="inline-flex items-center justify-center w-10 h-10 rounded-xl border border-gray-200 hover:bg-gray-50"
+              aria-label="Prev"
+            >
+              <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
             <h1 className="text-xl font-semibold text-gray-900">
               {current.toLocaleString('kk-KZ', { month: 'long', year: 'numeric' })}
             </h1>
-            <button onClick={nextMonth} className="px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200">→</button>
+            <button
+              onClick={nextMonth}
+              className="inline-flex items-center justify-center w-10 h-10 rounded-xl border border-gray-200 hover:bg-gray-50"
+              aria-label="Next"
+            >
+              <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
           </div>
 
           <div className="grid grid-cols-7 text-center text-gray-500 text-sm mb-2">
@@ -101,14 +116,19 @@ export default function CalendarPage() {
                 <button
                   key={key}
                   onClick={() => setSelectedDate({ key, date: d, list })}
-                  className={`h-24 text-left p-2 rounded-lg border transition ${
+                  className={`h-24 text-left p-2 rounded-xl border transition ${
                     isToday ? 'border-indigo-400 bg-indigo-50' : 'border-gray-200 bg-white hover:bg-gray-50'
                   }`}
                 >
-                  <div className="text-xs text-gray-500">{d.getDate()}</div>
+                  <div className="flex items-center justify-between">
+                    <div className="text-xs text-gray-500">{d.getDate()}</div>
+                    {isToday && <span className="inline-block w-2 h-2 rounded-full bg-indigo-500" />}
+                  </div>
                   {list.slice(0, 3).map(t => (
-                    <div key={t.id} className="mt-1 truncate text-xs rounded px-1 py-0.5
-                      bg-slate-100 text-slate-700">
+                    <div
+                      key={t.id}
+                      className="mt-1 truncate text-xs rounded px-1 py-0.5 bg-slate-100 text-slate-700"
+                    >
                       {t.status === 'OVERDUE' ? '⏰ ' : ''}{t.title}
                     </div>
                   ))}
@@ -122,11 +142,11 @@ export default function CalendarPage() {
         </div>
 
         <div className="space-y-6">
-          <div className="bg-white rounded-2xl shadow-sm p-6">
+          <div className="rounded-2xl bg-white/80 backdrop-blur p-6 ring-1 ring-gray-100 shadow-sm">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">ICS сілтеме</h2>
             <div className="flex items-center gap-2">
-              <input readOnly value={icsUrl} className="flex-1 rounded-lg border border-gray-300 px-3 py-2 bg-gray-50 text-gray-700" />
-              <button onClick={copyIcs} className="px-3 py-2 rounded-lg bg-slate-700 text-white hover:bg-slate-800">
+              <input readOnly value={icsUrl} className="flex-1 rounded-xl border border-gray-200 px-3 py-2 bg-gray-50 text-gray-700" />
+              <button onClick={copyIcs} className="px-3 py-2 rounded-xl bg-slate-800 text-white hover:bg-slate-900">
                 Көшіру
               </button>
             </div>
@@ -135,12 +155,12 @@ export default function CalendarPage() {
             </p>
           </div>
 
-          <div className="bg-white rounded-2xl shadow-sm p-6">
+          <div className="rounded-2xl bg-white/80 backdrop-blur p-6 ring-1 ring-gray-100 shadow-sm">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Оқиға қосу</h2>
             <CalendarEventForm />
           </div>
 
-          <div className="bg-white rounded-2xl shadow-sm p-6">
+          <div className="rounded-2xl bg-white/80 backdrop-blur p-6 ring-1 ring-gray-100 shadow-sm">
             <h2 className="text-lg font-semibold text-gray-900 mb-2">Күн бойынша тапсырмалар</h2>
             {selectedDate ? (
               <div>

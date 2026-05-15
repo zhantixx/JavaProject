@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { auth } from '../services/api';
 
 function Login() {
@@ -19,8 +19,27 @@ function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4">
+    <div className="min-h-screen px-4 flex items-center justify-center">
       <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 space-y-6">
+        <div className="flex justify-center">
+          <div className="relative w-full max-w-sm">
+            <div className="absolute inset-y-1 left-1 w-1/2 rounded-lg bg-white shadow-sm transition-all"></div>
+            <div className="grid grid-cols-2 gap-1 relative z-10 bg-gray-100 rounded-xl p-1">
+              <Link to="/login" className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-blue-700">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 7a4 4 0 10-6 0 4 4 0 006 0zM5 21a7 7 0 0114 0H5z" />
+                </svg>
+                <span className="font-medium">Кіру</span>
+              </Link>
+              <Link to="/register" className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-gray-700 hover:bg-white">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4a4 4 0 110 8 4 4 0 010-8zm8 12h-3m0 0h-3m3 0v-3m0 3v3M6 18a6 6 0 1112 0H6z" />
+                </svg>
+                <span className="font-medium">Тіркелу</span>
+              </Link>
+            </div>
+          </div>
+        </div>
         <div className="text-center">
           <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
             <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -22,8 +22,8 @@ spring:
       client:
         registration:
           google:
-            client-id: 946199020421-gdj9kbnjvduak2asovjcub1vkfdneuqs.apps.googleusercontent.com
-            client-secret: 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
+            client-id: ${GOOGLE_CLIENT_ID:}
+            client-secret: ${GOOGLE_CLIENT_SECRET:}
             scope:
               - email
               - profile
@@ -36,7 +36,7 @@ spring:
             user-name-attribute: email
 
 jwt:
-  secret: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
+  secret: ${JWT_SECRET:change-me}
   expiration: 86400000
 
 task:
