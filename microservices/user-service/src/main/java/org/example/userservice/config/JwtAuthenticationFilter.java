@@ -25,6 +25,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         this.userDetailsService = userDetailsService;
     }
 
+
     @Override
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
@@ -32,12 +33,23 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
 
         String path = request.getRequestURI();
+        String method = request.getMethod();
+
+        // Пропускаем только GET запросы к календарю (получение событий)
+        if (path.equals("/api/calendar/events") && method.equals("GET")) {
+            chain.doFilter(request, response);
+            return;
+        }
+
+        // POST запросы к календарю требуют авторизации
         if (path.startsWith("/oauth2/") || path.startsWith("/login/oauth2/")) {
             chain.doFilter(request, response);
             return;
         }
 
         final String authHeader = request.getHeader("Authorization");
+        System.out.println(">>> Auth header: " + authHeader);
+
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             chain.doFilter(request, response);
             return;
@@ -45,14 +57,19 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         final String jwt = authHeader.substring(7);
         final String username = jwtUtil.extractUsername(jwt);
+        System.out.println(">>> Extracted username: " + username);
 
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             UserDetails userDetails = this.userDetailsService.loadUserByUsername(username);
+            System.out.println(">>> UserDetails loaded: " + (userDetails != null));
             if (jwtUtil.validateToken(jwt, userDetails)) {
                 UsernamePasswordAuthenticationToken authToken =
                         new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
                 authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(authToken);
+                System.out.println(">>> Authentication set for user: " + username);
+            } else {
+                System.out.println(">>> Token validation failed");
             }
         }
         chain.doFilter(request, response);

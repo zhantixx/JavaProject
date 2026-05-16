@@ -49,14 +49,14 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .cors(cors -> {})
+                .cors(cors -> cors.disable())
                 .csrf(csrf -> csrf.disable())
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
                 .formLogin(form -> form.disable())
                 .httpBasic(basic -> basic.disable())
                 .logout(logout -> logout.disable())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/register", "/api/auth/login", "/oauth2/**", "/login/oauth2/**").permitAll()
+                        .requestMatchers("/api/auth/register", "/api/auth/login", "/oauth2/**", "/login/oauth2/**","/api/calendar/events").permitAll()
                         .anyRequest().authenticated()
                 )
                 .oauth2Login(oauth2 -> oauth2
@@ -64,6 +64,7 @@ public class SecurityConfig {
                             OAuth2User oauth2User = (OAuth2User) authentication.getPrincipal();
                             String email = oauth2User.getAttribute("email");
 
+                            // Сохраняем OAuth2 токены
                             try {
                                 String registrationId = "google";
                                 OAuth2AuthorizedClient client = authorizedClientService
@@ -76,8 +77,15 @@ public class SecurityConfig {
                                 }
                             } catch (Exception ignored) { }
 
-                            String token = jwtUtil.generateToken(email, "USER");
-                            response.sendRedirect("http://localhost:3000/oauth2/redirect?token=" + token);
+                            String linkParam = request.getParameter("link");
+                            if ("true".equals(linkParam)) {
+                                // Привязка Google аккаунта к существующему пользователю
+                                response.sendRedirect("http://localhost:3000/settings?calendar_linked=true");
+                            } else {
+                                // Обычный OAuth2 вход – генерируем JWT
+                                String token = jwtUtil.generateToken(email, "USER");
+                                response.sendRedirect("http://localhost:3000/oauth2/redirect?token=" + token);
+                            }
                         })
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -86,21 +94,8 @@ public class SecurityConfig {
         return http.build();
     }
 
-    @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration cfg = new CorsConfiguration();
-        cfg.setAllowedOrigins(List.of(
-                "http://localhost:3000",
-                "http://127.0.0.1:3000"
-        ));
-        cfg.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        cfg.setAllowedHeaders(List.of("*"));
-        cfg.setExposedHeaders(List.of("Location"));
-        cfg.setAllowCredentials(true);
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", cfg);
-        return source;
-    }
+
+
 
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {

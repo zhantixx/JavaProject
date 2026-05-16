@@ -4,6 +4,7 @@ import org.example.userservice.dto.UpdateMeRequest;
 import org.example.userservice.dto.UserMeResponse;
 import org.example.userservice.entity.User;
 import org.example.userservice.repository.UserRepository;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
@@ -39,5 +40,12 @@ public class UserProfileController {
         }
         userRepository.save(user);
         return new UserMeResponse(user.getId(), user.getEmail(), user.getName(), user.getRole());
+    }
+
+    @GetMapping("/api/users/by-email")
+    public ResponseEntity<Long> getUserIdByEmail(@RequestParam String email) {
+        return userRepository.findByEmail(email)
+                .map(user -> ResponseEntity.ok(user.getId()))
+                .orElse(ResponseEntity.notFound().build());
     }
 }

@@ -199,6 +199,9 @@ services:
       - SPRING_CLOUD_GATEWAY_ROUTES[0].predicates[0]=Path=/api/auth/**
       - SPRING_CLOUD_GATEWAY_ROUTES[0].predicates[1]=Path=/api/users/**
       - SPRING_CLOUD_GATEWAY_ROUTES[0].predicates[2]=Path=/api/calendar/events
+      - SPRING_CLOUD_GATEWAY_ROUTES[5].id=calendar-route
+      - SPRING_CLOUD_GATEWAY_ROUTES[5].uri=http://user-service:8081
+      - SPRING_CLOUD_GATEWAY_ROUTES[5].predicates[0]=Path=/api/calendar/**
       - SPRING_CLOUD_GATEWAY_ROUTES[1].id=task-service
       - SPRING_CLOUD_GATEWAY_ROUTES[1].uri=http://task-service:8086
       - SPRING_CLOUD_GATEWAY_ROUTES[1].predicates[0]=Path=/api/tasks/**

@@ -2,43 +2,54 @@ package org.example.userservice.controller;
 
 import org.example.userservice.dto.EventDto;
 import org.example.userservice.service.GoogleCalendarService;
+import org.example.userservice.service.OAuthAccountService;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
-import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
-import org.springframework.security.oauth2.core.user.OAuth2User;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/calendar")
 public class CalendarController {
 
     private final GoogleCalendarService calendarService;
-    private final OAuth2AuthorizedClientService authorizedClientService;
+    private final OAuthAccountService oAuthAccountService;
 
     public CalendarController(GoogleCalendarService calendarService,
-                              OAuth2AuthorizedClientService authorizedClientService) {
+                              OAuthAccountService oAuthAccountService) {
         this.calendarService = calendarService;
-        this.authorizedClientService = authorizedClientService;
+        this.oAuthAccountService = oAuthAccountService;
     }
 
     @PostMapping("/events")
-    public String createEvent(@RequestBody EventDto dto, @AuthenticationPrincipal OAuth2User oAuth2User) {
-        OAuth2AuthorizedClient client = authorizedClientService.loadAuthorizedClient(
-                "google", oAuth2User.getName());
-        String accessToken = client.getAccessToken().getTokenValue();
-        return calendarService.createEvent(accessToken, dto.getTitle(), dto.getDescription(),
-                dto.getStartDateTime(), dto.getEndDateTime());
-    }
+    public ResponseEntity<?> createEvent(@RequestBody EventDto dto,
+                                         @AuthenticationPrincipal UserDetails userDetails) {
+        if (userDetails == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
 
-    @PostMapping("/create-from-task")
-    public String createEventFromTask(@AuthenticationPrincipal OAuth2User oAuth2User,
-                                      @RequestParam String title,
-                                      @RequestParam(required = false) String description,
-                                      @RequestParam String startDateTime,
-                                      @RequestParam String endDateTime) {
-        OAuth2AuthorizedClient client = authorizedClientService.loadAuthorizedClient(
-                "google", oAuth2User.getName());
-        String accessToken = client.getAccessToken().getTokenValue();
-        return calendarService.createEvent(accessToken, title, description, startDateTime, endDateTime);
+        String email = userDetails.getUsername();
+
+        try {
+            // Получаем актуальный Google access token
+            String googleAccessToken = oAuthAccountService.getValidGoogleAccessToken(email);
+
+            // Создаем событие в Google Calendar
+            String eventId = calendarService.createEvent(
+                    googleAccessToken,
+                    dto.getTitle(),
+                    dto.getDescription(),
+                    dto.getStartDateTime(),
+                    dto.getEndDateTime()
+            );
+
+            return ResponseEntity.ok(Map.of("eventId", eventId, "message", "Event created"));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", e.getMessage()));
+        }
     }
 }
