@@ -118,10 +118,12 @@ services:
       SPRING_DATASOURCE_PASSWORD: 123456
       SPRING_REDIS_HOST: redis
       SPRING_REDIS_PORT: 6379
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
       JWT_SECRET: ${JWT_SECRET}
       INTERNAL_API_SECRET: 8c2f0e4f9a-local-dev-internal-secret
       TASK_SERVICE_URL: http://task-service:8082
-      OAUTH2_REDIRECT_URI: http://localhost:3002/oauth2/redirect
+      OAUTH2_REDIRECT_URI: http://localhost:3000/oauth2/redirect
     ports:
       - "8081:8081"
     networks:
