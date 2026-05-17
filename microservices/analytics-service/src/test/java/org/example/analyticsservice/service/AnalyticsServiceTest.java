@@ -8,6 +8,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.client.RestTemplate;
 
@@ -16,6 +19,7 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -29,12 +33,17 @@ class AnalyticsServiceTest {
     void getUserTaskStats_shouldComputeLiveStatsAndCacheThem() {
         AnalyticsService service = new AnalyticsService(repository, restTemplate);
         ReflectionTestUtils.setField(service, "taskServiceUrl", "http://task-service:8082");
+        ReflectionTestUtils.setField(service, "internalApiSecret", "test-secret");
 
         TaskDto done = task("DONE", "HIGH", LocalDateTime.now().minusDays(1));
         TaskDto overdue = task("PLANNED", "LOW", LocalDateTime.now().minusHours(1));
 
-        when(restTemplate.getForObject("http://task-service:8082/api/tasks/user/7", TaskDto[].class))
-                .thenReturn(new TaskDto[]{done, overdue});
+        when(restTemplate.exchange(
+                eq("http://task-service:8082/api/tasks/user/7"),
+                eq(HttpMethod.GET),
+                any(HttpEntity.class),
+                eq(TaskDto[].class)
+        )).thenReturn(ResponseEntity.ok(new TaskDto[]{done, overdue}));
         when(repository.findByUserId(7L)).thenReturn(Optional.empty());
         when(repository.save(any(TaskStatsEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
 

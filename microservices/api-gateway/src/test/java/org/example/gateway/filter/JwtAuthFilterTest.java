@@ -57,6 +57,37 @@ class JwtAuthFilterTest {
         assertThat(forwardedUserId).hasValue("42");
     }
 
+    @Test
+    void shouldStripClientSuppliedInternalHeaders() {
+        JwtUtil jwtUtil = mock(JwtUtil.class);
+        JwtAuthFilter filter = new JwtAuthFilter(jwtUtil);
+        String token = "token-with-user-id";
+        Claims claims = Jwts.claims().setSubject("user@example.com");
+        claims.put("userId", "42");
+        AtomicReference<String> forwardedUserId = new AtomicReference<>();
+        AtomicReference<String> forwardedSecret = new AtomicReference<>();
+
+        when(jwtUtil.validateToken(token)).thenReturn(true);
+        when(jwtUtil.extractAllClaims(token)).thenReturn(claims);
+
+        MockServerHttpRequest request = MockServerHttpRequest.get("/api/tasks/user/99")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                .header("X-User-Id", "99")
+                .header("X-Internal-Secret", "client-secret")
+                .build();
+
+        GatewayFilterChain chain = exchange -> {
+            forwardedUserId.set(exchange.getRequest().getHeaders().getFirst("X-User-Id"));
+            forwardedSecret.set(exchange.getRequest().getHeaders().getFirst("X-Internal-Secret"));
+            return Mono.empty();
+        };
+
+        filter.filter(MockServerWebExchange.from(request), chain).block();
+
+        assertThat(forwardedUserId).hasValue("42");
+        assertThat(forwardedSecret.get()).isNull();
+    }
+
     private MockServerWebExchange exchange(String token) {
         MockServerHttpRequest request = MockServerHttpRequest.get("/api/tasks")
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)

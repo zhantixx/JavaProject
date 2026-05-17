@@ -51,6 +51,10 @@ task:
   service:
     url: http://task-service:8082
 
+internal:
+  api:
+    secret: ${JWT_SECRET:change-me}
+
 jwt:
   secret: ${JWT_SECRET:change-me}
   expiration: ${JWT_EXPIRATION:900000}

@@ -5,10 +5,13 @@ import org.example.taskservice.dto.TaskRequest;
 import org.example.taskservice.dto.TaskResponse;
 import org.example.taskservice.dto.TaskStatusUpdateRequest;
 import org.example.taskservice.service.TaskService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -19,6 +22,9 @@ import java.util.stream.Collectors;
 public class TaskController {
 
     private final TaskService taskService;
+
+    @Value("${internal.api.secret}")
+    private String internalApiSecret;
 
     public TaskController(TaskService taskService) {
         this.taskService = taskService;
@@ -104,14 +110,26 @@ public class TaskController {
     }
 
     @GetMapping("/user/{userId}")
-    public ResponseEntity<List<TaskResponse>> getTasksByUserId(@PathVariable Long userId) {
+    public ResponseEntity<List<TaskResponse>> getTasksByUserId(@PathVariable Long userId,
+                                                               @RequestHeader(value = "X-Internal-Secret", required = false) String internalSecret) {
+        requireInternalSecret(internalSecret);
         return ResponseEntity.ok(taskService.getUserTasks(userId));
     }
 
     @DeleteMapping("/user/{userId}")
-    public ResponseEntity<Void> deleteAllTasksOfUser(@PathVariable Long userId) {
+    public ResponseEntity<Void> deleteAllTasksOfUser(@PathVariable Long userId,
+                                                     @RequestHeader(value = "X-Internal-Secret", required = false) String internalSecret) {
+        requireInternalSecret(internalSecret);
         taskService.deleteAllUserTasks(userId);
         return ResponseEntity.noContent().build();
+    }
+
+    private void requireInternalSecret(String providedSecret) {
+        if (internalApiSecret == null || internalApiSecret.isBlank()
+                || providedSecret == null
+                || !internalApiSecret.equals(providedSecret)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Internal endpoint");
+        }
     }
 
     @PostMapping("/{id}/tags")

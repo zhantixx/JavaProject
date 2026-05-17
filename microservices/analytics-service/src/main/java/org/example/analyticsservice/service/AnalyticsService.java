@@ -5,6 +5,10 @@ import org.example.analyticsservice.dto.TaskStatsDto;
 import org.example.analyticsservice.entity.TaskStatsEntity;
 import org.example.analyticsservice.repository.AnalyticsRepository;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
@@ -21,6 +25,9 @@ public class AnalyticsService {
 
     @Value("${task.service.url:http://localhost:8082}")
     private String taskServiceUrl;
+
+    @Value("${internal.api.secret}")
+    private String internalApiSecret;
 
     public AnalyticsService(AnalyticsRepository repository, RestTemplate restTemplate) {
         this.repository = repository;
@@ -60,7 +67,15 @@ public class AnalyticsService {
     public TaskStatsDto getUserTaskStats(Long userId) {
         try {
             String url = taskServiceUrl + "/api/tasks/user/" + userId;
-            TaskDto[] tasks = restTemplate.getForObject(url, TaskDto[].class);
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("X-Internal-Secret", internalApiSecret);
+            ResponseEntity<TaskDto[]> response = restTemplate.exchange(
+                    url,
+                    HttpMethod.GET,
+                    new HttpEntity<>(headers),
+                    TaskDto[].class
+            );
+            TaskDto[] tasks = response.getBody();
             List<TaskDto> list = tasks == null ? List.of() : Arrays.asList(tasks);
             TaskStatsDto computed = computeStats(list);
 

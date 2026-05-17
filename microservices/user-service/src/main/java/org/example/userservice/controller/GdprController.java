@@ -6,7 +6,9 @@ import org.example.userservice.repository.UserRepository;
 import org.example.userservice.service.AuditService;
 import org.example.userservice.service.GdprExportService;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -25,6 +27,9 @@ public class GdprController {
 
     @Value("${task.service.url:http://task-service:8082}")
     private String taskServiceUrl;
+
+    @Value("${internal.api.secret}")
+    private String internalApiSecret;
 
     public GdprController(UserRepository userRepository,
                           GdprExportService gdprExportService,
@@ -54,7 +59,14 @@ public class GdprController {
         User user = userRepository.findByEmail(userDetails.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        restTemplate.delete(taskServiceUrl + "/api/tasks/user/" + user.getId());
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("X-Internal-Secret", internalApiSecret);
+        restTemplate.exchange(
+                taskServiceUrl + "/api/tasks/user/" + user.getId(),
+                HttpMethod.DELETE,
+                new HttpEntity<>(headers),
+                Void.class
+        );
 
         auditService.log(user.getId(), "DELETE_ACCOUNT", null, request.getRemoteAddr());
         userRepository.delete(user);
