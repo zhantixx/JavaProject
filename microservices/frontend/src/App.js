@@ -43,12 +43,13 @@ function ThemeToggle({ theme, onToggle }) {
     <button
       type="button"
       onClick={onToggle}
-      className="inline-flex items-center gap-2 rounded-xl border border-[var(--border-color)] bg-[var(--card-strong)] px-3.5 py-2.5 text-sm font-medium text-[var(--text-primary)] transition hover:border-[var(--brand-border)] hover:text-[var(--brand-strong)]"
+      aria-label={theme === 'dark' ? 'Жарық тақырыпқа ауысу' : 'Қараңғы тақырыпқа ауысу'}
+      title={theme === 'dark' ? 'Жарық тақырып' : 'Қараңғы тақырып'}
+      className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-[var(--border-color)] bg-[var(--card-strong)] text-[var(--text-primary)] transition hover:border-[var(--brand-border)] hover:text-[var(--brand-strong)]"
     >
-      <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[var(--brand-soft)] text-[var(--brand-strong)]">
-        {theme === 'dark' ? '☾' : '☼'}
+      <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[var(--brand-soft)] text-[var(--brand-strong)]">
+        {theme === 'dark' ? '☀' : '☾'}
       </span>
-      {theme === 'dark' ? 'Қараңғы' : 'Жарық'}
     </button>
   );
 }
@@ -88,8 +89,8 @@ function AppShell() {
   return (
     <div className="min-h-screen bg-transparent text-[var(--text-primary)]">
       <header className="sticky top-0 z-30 border-b border-[var(--border-color)] bg-[rgba(248,251,255,0.72)] backdrop-blur dark:bg-[rgba(8,17,32,0.72)]">
-        <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-4 md:flex-row md:items-center md:justify-between md:px-6">
-          <div className="flex items-center gap-4">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 md:px-6">
+          <div className="flex min-w-0 items-center gap-4">
             <Link to={token ? '/tasks' : '/login'} className="flex items-center gap-3">
               <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#2563eb,#60a5fa)] text-base font-semibold text-white shadow-[0_12px_24px_rgba(37,99,235,0.28)]">
                 K
@@ -101,23 +102,16 @@ function AppShell() {
             </Link>
           </div>
 
-          <div className="flex flex-col gap-3 md:items-end">
-            <div className="flex flex-wrap items-center gap-2">
-              <ThemeToggle
-                theme={theme}
-                onToggle={() => setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'))}
-              />
-              {token ? <GhostButton onClick={logout}>Шығу</GhostButton> : null}
-            </div>
+          <div className="flex min-w-0 items-center gap-2">
             {token ? (
-              <nav className="flex flex-wrap gap-2">
+              <nav className="hidden min-w-0 items-center gap-2 md:flex">
                 {navItems.map((item) => {
                   const isActive = location.pathname === item.to || location.pathname.startsWith(`${item.to}/`);
                   return (
                     <NavLink
                       key={item.to}
                       to={item.to}
-                      className={`rounded-xl px-4 py-2 text-sm font-medium transition ${
+                      className={`whitespace-nowrap rounded-xl px-4 py-2 text-sm font-medium transition ${
                         isActive
                           ? 'bg-[var(--brand-strong)] text-white shadow-[0_14px_26px_rgba(37,99,235,0.22)]'
                           : 'bg-[var(--card-strong)] text-[var(--text-secondary)] hover:text-[var(--brand-strong)]'
@@ -129,8 +123,37 @@ function AppShell() {
                 })}
               </nav>
             ) : null}
+            <div className="flex items-center gap-2 shrink-0">
+              <ThemeToggle
+                theme={theme}
+                onToggle={() => setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'))}
+              />
+              {token ? <GhostButton onClick={logout}>Шығу</GhostButton> : null}
+            </div>
           </div>
         </div>
+        {token ? (
+          <div className="border-t border-[var(--border-color)] px-4 py-3 md:hidden">
+            <nav className="flex overflow-x-auto gap-2 pb-1">
+              {navItems.map((item) => {
+                const isActive = location.pathname === item.to || location.pathname.startsWith(`${item.to}/`);
+                return (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    className={`shrink-0 whitespace-nowrap rounded-xl px-4 py-2 text-sm font-medium transition ${
+                      isActive
+                        ? 'bg-[var(--brand-strong)] text-white shadow-[0_14px_26px_rgba(37,99,235,0.22)]'
+                        : 'bg-[var(--card-strong)] text-[var(--text-secondary)] hover:text-[var(--brand-strong)]'
+                    }`}
+                  >
+                    {item.label}
+                  </NavLink>
+                );
+              })}
+            </nav>
+          </div>
+        ) : null}
       </header>
 
       <main className="mx-auto max-w-7xl px-4 py-6 md:px-6 md:py-8">
