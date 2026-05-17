@@ -1,6 +1,7 @@
 package org.example.taskservice.dto;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 import java.time.LocalDateTime;
@@ -15,9 +16,11 @@ public class TaskRequest {
     private String description;
 
     @Size(max = 32, message = "Priority length must be <= 32")
+    @Pattern(regexp = "HIGH|MEDIUM|LOW", message = "Priority must be HIGH, MEDIUM or LOW")
     private String priority;
 
     @Size(max = 32, message = "Status length must be <= 32")
+    @Pattern(regexp = "PLANNED|DONE|CANCELED", message = "Status must be PLANNED, DONE or CANCELED")
     private String status;
 
     private LocalDateTime deadline;

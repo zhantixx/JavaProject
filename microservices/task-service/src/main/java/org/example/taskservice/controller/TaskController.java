@@ -95,7 +95,7 @@ public class TaskController {
 
     @PatchMapping("/{id}/status")
     public ResponseEntity<TaskResponse> changeStatus(@PathVariable Long id,
-                                                     @RequestBody TaskStatusUpdateRequest request,
+                                                     @Valid @RequestBody TaskStatusUpdateRequest request,
                                                      @RequestHeader(value = "X-User-Id", required = false) String userIdHeader) {
         Long userId = parseUserId(userIdHeader);
         return ResponseEntity.ok(taskService.changeStatus(id, request.getStatus(), userId));
