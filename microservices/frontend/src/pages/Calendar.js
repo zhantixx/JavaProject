@@ -1,192 +1,167 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import CalendarEventForm from '../components/CalendarEventForm';
+import TaskForm from '../components/TaskForm';
+import { tasks } from '../services/api';
 import { useToast } from '../components/Toast';
-import { calendar, tasks } from '../services/api';
 
-function startOfMonth(date) {
-  const d = new Date(date.getFullYear(), date.getMonth(), 1);
-  return d;
+function dateKey(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
 }
-function endOfMonth(date) {
-  return new Date(date.getFullYear(), date.getMonth() + 1, 0);
-}
-function formatISODate(d) {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
+
+function monthLabel(date) {
+  return date.toLocaleDateString('kk-KZ', { month: 'long', year: 'numeric' });
 }
 
 export default function CalendarPage() {
   const toast = useToast();
   const [current, setCurrent] = useState(new Date());
-  const [items, setItems] = useState([]);
-  const [selectedDate, setSelectedDate] = useState(null);
+  const [selected, setSelected] = useState(dateKey(new Date()));
+  const [taskList, setTaskList] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const icsUrl = calendar.icsUrl();
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const r = await tasks.getAll();
-        setItems(r.data || []);
-      } catch {
-        toast.error('Тапсырмаларды жүктеу қатесі');
-      }
-    })();
-  }, [toast]);
-
-  const monthDays = useMemo(() => {
-    const start = startOfMonth(current);
-    const end = endOfMonth(current);
-    const days = [];
-    const offset = (start.getDay() + 6) % 7;
-    for (let i = 0; i < offset; i++) days.push(null);
-    for (let d = 1; d <= end.getDate(); d++) {
-      days.push(new Date(current.getFullYear(), current.getMonth(), d));
-    }
-    return days;
-  }, [current]);
-
-  const itemsByDay = useMemo(() => {
-    const map = {};
-    (items || []).forEach(t => {
-      if (!t.deadline) return;
-      const d = new Date(t.deadline);
-      const key = formatISODate(new Date(d.getFullYear(), d.getMonth(), d.getDate()));
-      if (!map[key]) map[key] = [];
-      map[key].push(t);
-    });
-    return map;
-  }, [items]);
-
-  const prevMonth = () => setCurrent(new Date(current.getFullYear(), current.getMonth() - 1, 1));
-  const nextMonth = () => setCurrent(new Date(current.getFullYear(), current.getMonth() + 1, 1));
-
-  const copyIcs = async () => {
+  const loadTasks = async () => {
+    setLoading(true);
     try {
-      await navigator.clipboard.writeText(icsUrl);
-      toast.success('ICS сілтемесі көшірілді. Күнтізбеге URL арқылы қосыңыз.');
-    } catch {
-      toast.error('Сілтемені көшіру мүмкін болмады');
+      const res = await tasks.getAll();
+      setTaskList(res.data || []);
+    } catch (err) {
+      toast.error(err.response?.data || 'Күнтізбе жүктелмеді');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const weekdayLabels = ['Дс', 'Сс', 'Ср', 'Бс', 'Жм', 'Сб', 'Жс'];
+  useEffect(() => {
+    loadTasks();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const days = useMemo(() => {
+    const start = new Date(current.getFullYear(), current.getMonth(), 1);
+    const end = new Date(current.getFullYear(), current.getMonth() + 1, 0);
+    const offset = (start.getDay() + 6) % 7;
+    const result = [];
+    for (let i = 0; i < offset; i += 1) result.push(null);
+    for (let d = 1; d <= end.getDate(); d += 1) {
+      result.push(new Date(current.getFullYear(), current.getMonth(), d));
+    }
+    return result;
+  }, [current]);
+
+  const byDay = useMemo(() => {
+    const map = {};
+    taskList.forEach((task) => {
+      if (!task.deadline) return;
+      const key = dateKey(new Date(task.deadline));
+      map[key] = map[key] || [];
+      map[key].push(task);
+    });
+    return map;
+  }, [taskList]);
+
+  const selectedTasks = byDay[selected] || [];
+  const defaultDateTime = `${selected}T09:00`;
+
+  const handleCreated = (task) => {
+    setTaskList((prev) => [task, ...prev]);
+    if (task.deadline) {
+      setSelected(dateKey(new Date(task.deadline)));
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50 py-10 px-4">
-      <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 rounded-2xl bg-white/80 backdrop-blur p-6 ring-1 ring-gray-100 shadow-sm">
-          <div className="flex items-center justify-between mb-5">
-            <button
-              onClick={prevMonth}
-              className="inline-flex items-center justify-center w-10 h-10 rounded-xl border border-gray-200 hover:bg-gray-50"
-              aria-label="Prev"
-            >
-              <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-            <h1 className="text-xl font-semibold text-gray-900">
-              {current.toLocaleString('kk-KZ', { month: 'long', year: 'numeric' })}
-            </h1>
-            <button
-              onClick={nextMonth}
-              className="inline-flex items-center justify-center w-10 h-10 rounded-xl border border-gray-200 hover:bg-gray-50"
-              aria-label="Next"
-            >
-              <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
-          </div>
+    <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_380px]">
+      <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="mb-5 flex items-center justify-between">
+          <button
+            onClick={() => setCurrent(new Date(current.getFullYear(), current.getMonth() - 1, 1))}
+            className="rounded-md border border-slate-300 px-3 py-2 text-sm hover:bg-slate-50"
+          >
+            Алдыңғы
+          </button>
+          <h1 className="text-xl font-semibold capitalize text-slate-950">{monthLabel(current)}</h1>
+          <button
+            onClick={() => setCurrent(new Date(current.getFullYear(), current.getMonth() + 1, 1))}
+            className="rounded-md border border-slate-300 px-3 py-2 text-sm hover:bg-slate-50"
+          >
+            Келесі
+          </button>
+        </div>
 
-          <div className="grid grid-cols-7 text-center text-gray-500 text-sm mb-2">
-            {weekdayLabels.map((w) => <div key={w} className="py-1">{w}</div>)}
-          </div>
+        <div className="grid grid-cols-7 gap-2 text-center text-xs font-medium text-slate-500">
+          {['Дс', 'Сс', 'Ср', 'Бс', 'Жм', 'Сб', 'Жс'].map((day) => (
+            <div key={day} className="py-2">{day}</div>
+          ))}
+        </div>
 
-          <div className="grid grid-cols-7 gap-1">
-            {monthDays.map((d, idx) => {
-              if (!d) return <div key={`e-${idx}`} className="h-24 bg-transparent" />;
-              const key = formatISODate(d);
-              const list = itemsByDay[key] || [];
-              const isToday = key === formatISODate(new Date());
-              return (
-                <button
-                  key={key}
-                  onClick={() => setSelectedDate({ key, date: d, list })}
-                  className={`h-24 text-left p-2 rounded-xl border transition ${
-                    isToday ? 'border-indigo-400 bg-indigo-50' : 'border-gray-200 bg-white hover:bg-gray-50'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="text-xs text-gray-500">{d.getDate()}</div>
-                    {isToday && <span className="inline-block w-2 h-2 rounded-full bg-indigo-500" />}
-                  </div>
-                  {list.slice(0, 3).map(t => (
+        <div className="mt-2 grid grid-cols-7 gap-2">
+          {days.map((day, index) => {
+            if (!day) return <div key={`empty-${index}`} className="min-h-24" />;
+            const key = dateKey(day);
+            const list = byDay[key] || [];
+            const isSelected = key === selected;
+            const isToday = key === dateKey(new Date());
+            return (
+              <button
+                key={key}
+                onClick={() => setSelected(key)}
+                className={`min-h-24 rounded-md border p-2 text-left transition ${
+                  isSelected
+                    ? 'border-slate-900 bg-slate-900 text-white'
+                    : isToday
+                      ? 'border-slate-400 bg-slate-50'
+                      : 'border-slate-200 bg-white hover:bg-slate-50'
+                }`}
+              >
+                <div className="text-sm font-semibold">{day.getDate()}</div>
+                <div className="mt-2 space-y-1">
+                  {list.slice(0, 2).map((task) => (
                     <div
-                      key={t.id}
-                      className="mt-1 truncate text-xs rounded px-1 py-0.5 bg-slate-100 text-slate-700"
+                      key={task.id}
+                      className={`truncate rounded px-1.5 py-0.5 text-xs ${
+                        isSelected ? 'bg-white/15 text-white' : 'bg-slate-100 text-slate-700'
+                      }`}
                     >
-                      {t.status === 'OVERDUE' ? '⏰ ' : ''}{t.title}
+                      {task.title}
                     </div>
                   ))}
-                  {list.length > 3 && (
-                    <div className="mt-1 text-xs text-gray-500">+{list.length - 3} тағы</div>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        <div className="space-y-6">
-          <div className="rounded-2xl bg-white/80 backdrop-blur p-6 ring-1 ring-gray-100 shadow-sm">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">ICS сілтеме</h2>
-            <div className="flex items-center gap-2">
-              <input readOnly value={icsUrl} className="flex-1 rounded-xl border border-gray-200 px-3 py-2 bg-gray-50 text-gray-700" />
-              <button onClick={copyIcs} className="px-3 py-2 rounded-xl bg-slate-800 text-white hover:bg-slate-900">
-                Көшіру
-              </button>
-            </div>
-            <p className="text-sm text-gray-500 mt-2">
-              Google/Outlook‑қа «URL арқылы жазылу» ретінде қосыңыз.
-            </p>
-          </div>
-
-          <div className="rounded-2xl bg-white/80 backdrop-blur p-6 ring-1 ring-gray-100 shadow-sm">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Оқиға қосу</h2>
-            <CalendarEventForm />
-          </div>
-
-          <div className="rounded-2xl bg-white/80 backdrop-blur p-6 ring-1 ring-gray-100 shadow-sm">
-            <h2 className="text-lg font-semibold text-gray-900 mb-2">Күн бойынша тапсырмалар</h2>
-            {selectedDate ? (
-              <div>
-                <div className="text-sm text-gray-600 mb-2">
-                  Таңдалған күн: {selectedDate.date.toLocaleDateString('kk-KZ')}
+                  {list.length > 2 ? (
+                    <div className={`text-xs ${isSelected ? 'text-white/80' : 'text-slate-500'}`}>
+                      +{list.length - 2}
+                    </div>
+                  ) : null}
                 </div>
-                <ul className="divide-y">
-                  {selectedDate.list.map(t => (
-                    <li key={t.id} className="py-2">
-                      <div className="font-medium text-gray-900">
-                        {t.status === 'OVERDUE' ? '⏰ ' : ''}{t.title}
-                      </div>
-                      {t.description && <div className="text-sm text-gray-600">{t.description}</div>}
-                    </li>
-                  ))}
-                  {selectedDate.list.length === 0 && (
-                    <li className="py-2 text-sm text-gray-500">Бұл күнге тапсырма жоқ</li>
-                  )}
-                </ul>
-              </div>
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
+      <aside className="space-y-5">
+        <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+          <h2 className="text-lg font-semibold text-slate-950">Таңдалған күн</h2>
+          <p className="mt-1 text-sm text-slate-500">{new Date(selected).toLocaleDateString('kk-KZ')}</p>
+          <div className="mt-4 space-y-3">
+            {loading ? (
+              <div className="text-sm text-slate-500">Жүктеліп жатыр...</div>
+            ) : selectedTasks.length === 0 ? (
+              <div className="text-sm text-slate-500">Бұл күнге тапсырма жоқ</div>
             ) : (
-              <div className="text-sm text-gray-500">Сол жақтағы күннен таңдаңыз</div>
+              selectedTasks.map((task) => (
+                <div key={task.id} className="rounded-md border border-slate-200 p-3">
+                  <div className="font-medium text-slate-950">{task.title}</div>
+                  <div className="mt-1 text-xs text-slate-500">{new Date(task.deadline).toLocaleTimeString()}</div>
+                  {task.description ? <p className="mt-2 text-sm text-slate-600">{task.description}</p> : null}
+                </div>
+              ))
             )}
           </div>
-        </div>
-      </div>
+        </section>
+
+        <TaskForm defaultDate={defaultDateTime} onTaskCreated={handleCreated} />
+      </aside>
     </div>
   );
 }

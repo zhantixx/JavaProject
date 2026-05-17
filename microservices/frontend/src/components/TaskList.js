@@ -1,31 +1,25 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import TaskForm from './TaskForm';
 import { tasks } from '../services/api';
+import { useToast } from './Toast';
 
 function TaskList() {
+  const toast = useToast();
   const [taskList, setTaskList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState('');
-  const [from, setFrom] = useState('');
-  const [to, setTo] = useState('');
-  const [tagId, setTagId] = useState('');
+  const [status, setStatus] = useState('');
 
   const loadTasks = async () => {
     setLoading(true);
-    const params = {};
-    if (from) params.from = from;
-    if (to) params.to = to;
-    if (tagId) params.tagId = tagId;
-    const res = await tasks.getAll({ params });
-    let list = res.data || [];
-    if (query.trim()) {
-      const q = query.trim().toLowerCase();
-      list = list.filter(t =>
-        (t.title || '').toLowerCase().includes(q) ||
-        (t.description || '').toLowerCase().includes(q)
-      );
+    try {
+      const res = await tasks.getAll();
+      setTaskList(res.data || []);
+    } catch (err) {
+      toast.error(err.response?.data || 'Тапсырмалар жүктелмеді');
+    } finally {
+      setLoading(false);
     }
-    setTaskList(list);
-    setLoading(false);
   };
 
   useEffect(() => {
@@ -33,126 +27,120 @@ function TaskList() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleApply = async () => {
-    await loadTasks();
-  };
+  const visibleTasks = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return taskList.filter((task) => {
+      const matchesQuery = !q ||
+        (task.title || '').toLowerCase().includes(q) ||
+        (task.description || '').toLowerCase().includes(q);
+      const matchesStatus = !status || (task.status || '').toUpperCase() === status;
+      return matchesQuery && matchesStatus;
+    });
+  }, [taskList, query, status]);
 
-  const handleReset = async () => {
-    setQuery('');
-    setFrom('');
-    setTo('');
-    setTagId('');
-    await loadTasks();
+  const handleCreated = (task) => {
+    setTaskList((prev) => [task, ...prev]);
   };
 
   const handleDelete = async (id) => {
-    await tasks.delete(id);
-    await loadTasks();
-  };
-
-  const priorityBadge = (priority) => {
-    switch(priority) {
-      case 'HIGH': return 'bg-rose-100 text-rose-800 ring-1 ring-rose-200';
-      case 'MEDIUM': return 'bg-amber-100 text-amber-800 ring-1 ring-amber-200';
-      default: return 'bg-emerald-100 text-emerald-800 ring-1 ring-emerald-200';
+    try {
+      await tasks.delete(id);
+      setTaskList((prev) => prev.filter((task) => task.id !== id));
+      toast.success('Тапсырма өшірілді');
+    } catch (err) {
+      toast.error(err.response?.data || 'Өшіру қатесі');
     }
   };
 
-  const statusBadge = (status) => {
-    switch((status || '').toUpperCase()) {
-      case 'IN_PROGRESS': return 'bg-indigo-100 text-indigo-800 ring-1 ring-indigo-200';
-      case 'DONE': return 'bg-emerald-100 text-emerald-800 ring-1 ring-emerald-200';
-      case 'BLOCKED': return 'bg-slate-200 text-slate-800 ring-1 ring-slate-300';
-      case 'OVERDUE': return 'bg-red-100 text-red-800 ring-1 ring-red-200';
-      case 'CANCELED': return 'bg-gray-200 text-gray-800 ring-1 ring-gray-300';
-      default: return 'bg-blue-100 text-blue-800 ring-1 ring-blue-200';
+  const handleStatus = async (id, nextStatus) => {
+    try {
+      const res = await tasks.updateStatus(id, nextStatus);
+      setTaskList((prev) => prev.map((task) => task.id === id ? res.data : task));
+    } catch (err) {
+      toast.error(err.response?.data || 'Статус өзгермеді');
     }
+  };
+
+  const priorityClass = (priority) => {
+    if (priority === 'HIGH') return 'bg-rose-50 text-rose-700 border-rose-200';
+    if (priority === 'LOW') return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+    return 'bg-amber-50 text-amber-700 border-amber-200';
   };
 
   return (
-    <div className="p-6">
-      <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between mb-4">
-        <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-3">
-          <input
-            type="text"
-            placeholder="Іздеу..."
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            className="px-4 py-2.5 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-500"
-          />
-          <input
-            type="datetime-local"
-            value={from}
-            onChange={(e) => setFrom(e.target.value)}
-            className="px-4 py-2.5 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-500"
-          />
-          <input
-            type="datetime-local"
-            value={to}
-            onChange={(e) => setTo(e.target.value)}
-            className="px-4 py-2.5 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-500"
-          />
-          <input
-            type="number"
-            min="1"
-            placeholder="Tag ID"
-            value={tagId}
-            onChange={(e) => setTagId(e.target.value)}
-            className="px-4 py-2.5 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-        <div className="flex gap-2">
-          <button onClick={handleApply} className="px-4 py-2.5 rounded-lg text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700">
-            Қолдану
-          </button>
-          <button onClick={handleReset} className="px-4 py-2.5 rounded-lg border border-gray-300 hover:bg-gray-50">
-            Тазалау
-          </button>
-        </div>
-      </div>
+    <div className="space-y-5">
+      <TaskForm onTaskCreated={handleCreated} />
 
-      {loading ? (
-        <div className="space-y-3">
-          {[...Array(5)].map((_, i) => (
-            <div key={i} className="h-16 rounded-xl bg-gray-100 animate-pulse" />
-          ))}
+      <section className="rounded-lg border border-slate-200 bg-white shadow-sm">
+        <div className="flex flex-col gap-3 border-b border-slate-200 p-5 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h1 className="text-xl font-semibold text-slate-950">Тапсырмалар</h1>
+            <p className="text-sm text-slate-500">{visibleTasks.length} тапсырма көрсетіліп тұр</p>
+          </div>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Іздеу"
+              className="rounded-md border border-slate-300 px-3 py-2 outline-none focus:border-slate-900"
+            />
+            <select
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
+              className="rounded-md border border-slate-300 bg-white px-3 py-2 outline-none focus:border-slate-900"
+            >
+              <option value="">Барлық статус</option>
+              <option value="PLANNED">Жоспар</option>
+              <option value="IN_PROGRESS">Орындалуда</option>
+              <option value="DONE">Дайын</option>
+            </select>
+          </div>
         </div>
-      ) : taskList.length === 0 ? (
-        <div className="text-center py-10 text-gray-500">Тапсырмалар табылмады</div>
-      ) : (
-        <ul className="divide-y">
-          {taskList.map(task => (
-            <li key={task.id} className="group p-4 sm:p-5 flex items-center justify-between gap-4 hover:bg-gray-50 transition">
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-3">
-                  <p className="font-semibold text-gray-900 truncate">{task.title}</p>
-                  <span className={`text-xs px-2 py-0.5 rounded-full ${priorityBadge(task.priority)}`}>
-                    {task.priority === 'HIGH' ? 'Жоғары' : task.priority === 'MEDIUM' ? 'Орташа' : 'Төмен'}
-                  </span>
-                  <span className={`text-xs px-2 py-0.5 rounded-full ${statusBadge(task.status)}`}>
-                    {task.status || 'PLANNED'}
-                  </span>
+
+        {loading ? (
+          <div className="p-5 text-sm text-slate-500">Жүктеліп жатыр...</div>
+        ) : visibleTasks.length === 0 ? (
+          <div className="p-10 text-center text-slate-500">Әзірге тапсырма жоқ</div>
+        ) : (
+          <ul className="divide-y divide-slate-200">
+            {visibleTasks.map((task) => (
+              <li key={task.id} className="flex flex-col gap-3 p-5 md:flex-row md:items-start md:justify-between">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="font-semibold text-slate-950">{task.title}</h3>
+                    <span className={`rounded-full border px-2 py-0.5 text-xs ${priorityClass(task.priority)}`}>
+                      {task.priority || 'MEDIUM'}
+                    </span>
+                    <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs text-slate-600">
+                      {task.status || 'PLANNED'}
+                    </span>
+                  </div>
+                  {task.description ? <p className="mt-1 text-sm text-slate-600">{task.description}</p> : null}
+                  {task.deadline ? (
+                    <p className="mt-2 text-xs text-slate-500">
+                      Дедлайн: {new Date(task.deadline).toLocaleString()}
+                    </p>
+                  ) : null}
                 </div>
-                {task.description ? (
-                  <p className="text-sm text-gray-600 mt-1 line-clamp-2">{task.description}</p>
-                ) : null}
-                {task.deadline ? (
-                  <p className="text-xs text-gray-500 mt-1">Дедлайн: {new Date(task.deadline).toLocaleString()}</p>
-                ) : null}
-              </div>
-              <button
-                onClick={() => handleDelete(task.id)}
-                className="shrink-0 inline-flex items-center justify-center w-9 h-9 rounded-lg text-red-600 hover:bg-red-50 transition"
-                aria-label="Delete"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
+                <div className="flex shrink-0 flex-wrap gap-2">
+                  <button
+                    onClick={() => handleStatus(task.id, task.status === 'DONE' ? 'PLANNED' : 'DONE')}
+                    className="rounded-md border border-slate-300 px-3 py-2 text-sm hover:bg-slate-50"
+                  >
+                    {task.status === 'DONE' ? 'Қайтару' : 'Дайын'}
+                  </button>
+                  <button
+                    onClick={() => handleDelete(task.id)}
+                    className="rounded-md border border-rose-200 px-3 py-2 text-sm text-rose-700 hover:bg-rose-50"
+                  >
+                    Өшіру
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
     </div>
   );
 }
