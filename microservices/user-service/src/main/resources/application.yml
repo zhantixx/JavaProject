@@ -1,22 +1,28 @@
 server:
-  port: ${USER_SERVICE_PORT:8081}
+  port: 8081
 
 spring:
   application:
     name: user-service
-
   datasource:
-    url: jdbc:postgresql://localhost:5432/user_db
+    url: jdbc:postgresql://postgres-user:5432/user_db
     username: postgres
     password: 123456
-    driver-class-name: org.postgresql.Driver
-
   jpa:
     hibernate:
       ddl-auto: update
     show-sql: true
-    database-platform: org.hibernate.dialect.PostgreSQLDialect
-
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${EMAIL_USERNAME}
+    password: ${EMAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
   security:
     oauth2:
       client:
@@ -27,25 +33,30 @@ spring:
             scope:
               - email
               - profile
-              - https://www.googleapis.com/auth/calendar
-        provider:
-          google:
-            authorization-uri: https://accounts.google.com/o/oauth2/auth
-            token-uri: https://oauth2.googleapis.com/token
-            user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
-            user-name-attribute: email
+          github:
+            client-id: ${GITHUB_CLIENT_ID:}
+            client-secret: ${GITHUB_CLIENT_SECRET:}
+            scope:
+              - user:email
+              - read:user
 
-jwt:
-  secret: ${JWT_SECRET:change-me}
-  expiration: 900000
-  refresh-expiration: 604800000
+user:
+  service:
+    url: http://user-service:8081
 
 task:
   service:
-    url: http://localhost:8082
+    url: http://task-service:8082
+
+jwt:
+  secret: ${JWT_SECRET:change-me}
+  expiration: ${JWT_EXPIRATION:900000}
+  refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800000}
+
+app:
+  oauth2:
+    redirect-uri: ${OAUTH2_REDIRECT_URI:http://localhost:3000/oauth2/redirect}
 
 logging:
   level:
     org.example.userservice: DEBUG
-    org.springframework.security: DEBUG
-    org.springframework.web: DEBUG

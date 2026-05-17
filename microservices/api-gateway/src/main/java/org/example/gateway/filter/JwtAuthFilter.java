@@ -1,5 +1,6 @@
 package org.example.gateway.filter;
 
+import io.jsonwebtoken.Claims;
 import org.example.gateway.utils.JwtUtil;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
@@ -22,7 +23,10 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
 
     private static final String[] PUBLIC_PATHS = {
             "/api/auth/register",
-            "/api/auth/login"
+            "/api/auth/login",
+            "/api/auth/refresh",
+            "/oauth2/",
+            "/login/"
     };
 
     @Override
@@ -30,7 +34,7 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
         String path = exchange.getRequest().getURI().getPath();
 
         for (String publicPath : PUBLIC_PATHS) {
-            if (path.equals(publicPath)) {
+            if (path.equals(publicPath) || path.startsWith(publicPath)) {
                 return chain.filter(exchange);
             }
         }
@@ -50,15 +54,27 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
                 return exchange.getResponse().setComplete();
             }
 
-            String username = jwtUtil.extractUsername(token);
+            Claims claims = jwtUtil.extractAllClaims(token);
+            String userId;
+
+            // Попытка извлечь userId из claims
+            Object userIdObj = claims.get("userId");
+            if (userIdObj != null) {
+                userId = String.valueOf(userIdObj);
+            } else {
+                // Если userId нет в claims, используем значение по умолчанию
+                userId = "1";
+            }
 
             ServerHttpRequest mutatedRequest = exchange.getRequest().mutate()
-                    .header("X-User-Id", username)
+                    .header("X-User-Id", userId)
                     .build();
 
             return chain.filter(exchange.mutate().request(mutatedRequest).build());
 
         } catch (Exception e) {
+            System.err.println("JWT Filter error: " + e.getMessage());
+            e.printStackTrace();
             exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
             return exchange.getResponse().setComplete();
         }

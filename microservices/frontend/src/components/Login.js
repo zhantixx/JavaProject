@@ -91,7 +91,7 @@ function Login() {
         </div>
 
         <a
-          href="http://localhost:8081/oauth2/authorization/google"
+          href="http://localhost:8080/oauth2/authorization/google"
           className="w-full flex items-center justify-center gap-2 bg-gray-100 text-gray-800 border border-gray-300 rounded-lg py-2 hover:bg-gray-200 transition"
         >
           <svg className="w-5 h-5" viewBox="0 0 24 24">
