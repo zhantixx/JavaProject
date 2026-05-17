@@ -24,7 +24,7 @@ public class AdminController {
     private final AdminService adminService;
     private final RestTemplate restTemplate;
 
-    @Value("${analytics.service.url:http://localhost:8083}")
+    @Value("${analytics.service.url:http://localhost:8085}")
     private String analyticsServiceUrl;
 
     public AdminController(AdminService adminService, RestTemplate restTemplate) {
