@@ -1,14 +1,15 @@
 package org.example.notificationservice.producer;
 
 import org.example.notificationservice.event.DeadlineEvent;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
-import java.util.logging.Logger;
 
 @Service
 public class NotificationProducer {
 
-    private static final Logger LOGGER = Logger.getLogger(NotificationProducer.class.getName());
+    private static final Logger log = LoggerFactory.getLogger(NotificationProducer.class);
     private final KafkaTemplate<String, Object> kafkaTemplate;
     private static final String TOPIC = "task-notifications";
 
@@ -17,11 +18,14 @@ public class NotificationProducer {
     }
 
     public void sendDeadlineNotification(DeadlineEvent event) {
-        try {
-            kafkaTemplate.send(TOPIC, event.getUserEmail(), event);
-            LOGGER.info("Sent event to Kafka: " + event.getEventType() + " for user " + event.getUserEmail());
-        } catch (Exception e) {
-            LOGGER.severe("Error sending to Kafka: " + e.getMessage());
-        }
+        kafkaTemplate.send(TOPIC, event.getUserEmail(), event)
+                .whenComplete((result, ex) -> {
+                    if (ex != null) {
+                        log.error("Failed to publish deadline event {} for user {}",
+                                event.getEventType(), event.getUserEmail(), ex);
+                    } else {
+                        log.info("Published deadline event {} for user {}", event.getEventType(), event.getUserEmail());
+                    }
+                });
     }
 }
