@@ -105,7 +105,9 @@ services:
       - assistant-net
 
   user-service:
-    build: ./user-service
+    build:
+      context: .
+      dockerfile: user-service/Dockerfile
     container_name: user-service
     depends_on:
       - postgres-user
@@ -126,7 +128,9 @@ services:
       - assistant-net
 
   task-service:
-    build: ./task-service
+    build:
+      context: .
+      dockerfile: task-service/Dockerfile
     container_name: task-service
     depends_on:
       - postgres-task
@@ -147,7 +151,9 @@ services:
       - assistant-net
 
   ai-service:
-    build: ./ai-service
+    build:
+      context: .
+      dockerfile: ai-service/Dockerfile
     container_name: ai-service
     environment:
       DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
@@ -159,7 +165,9 @@ services:
       - assistant-net
 
   notification-service:
-    build: ./notification-service
+    build:
+      context: .
+      dockerfile: notification-service/Dockerfile
     container_name: notification-service
     depends_on:
       - kafka
@@ -176,7 +184,9 @@ services:
       - assistant-net
 
   analytics-service:
-    build: ./analytics-service
+    build:
+      context: .
+      dockerfile: analytics-service/Dockerfile
     container_name: analytics-service
     depends_on:
       - postgres-analytics
@@ -193,7 +203,9 @@ services:
       - assistant-net
 
   api-gateway:
-    build: ./api-gateway
+    build:
+      context: .
+      dockerfile: api-gateway/Dockerfile
     container_name: api-gateway
     depends_on:
       - user-service
