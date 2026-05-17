@@ -1,55 +1,65 @@
 package org.example.gateway.filter;
 
-import io.github.bucket4j.Bandwidth;
-import io.github.bucket4j.Bucket;
-import io.github.bucket4j.Refill;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
+import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
 import java.time.Duration;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.time.Instant;
+import java.util.function.Function;
 
 @Component
 public class RateLimitingFilter implements GlobalFilter, Ordered {
 
-    private final Map<String, Bucket> buckets = new ConcurrentHashMap<>();
+    private static final Duration WINDOW = Duration.ofMinutes(1);
+
+    private final Function<String, Mono<Long>> incrementCounter;
 
     @Value("${rate.limit.requests-per-minute:100}")
     private int requestsPerMinute;
 
-    private Bucket createBucket() {
-        Bandwidth limit = Bandwidth.builder()
-                .capacity(requestsPerMinute)
-                .refillIntervally(requestsPerMinute, Duration.ofMinutes(1))
-                .build();
-        return Bucket.builder().addLimit(limit).build();
+    public RateLimitingFilter(ReactiveStringRedisTemplate redisTemplate) {
+        this(key -> redisTemplate.opsForValue()
+                .increment(key)
+                .flatMap(count -> count == 1
+                        ? redisTemplate.expire(key, WINDOW).thenReturn(count)
+                        : Mono.just(count)));
+    }
+
+    RateLimitingFilter(Function<String, Mono<Long>> incrementCounter) {
+        this.incrementCounter = incrementCounter;
     }
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
-        String clientIp = getClientIP(exchange);
-        Bucket bucket = buckets.computeIfAbsent(clientIp, k -> createBucket());
+        String key = "rate-limit:" + getClientIp(exchange) + ":" + Instant.now().getEpochSecond() / WINDOW.toSeconds();
 
-        if (bucket.tryConsume(1)) {
-            return chain.filter(exchange);
-        } else {
-            exchange.getResponse().setStatusCode(HttpStatus.TOO_MANY_REQUESTS);
-            exchange.getResponse().getHeaders().add("X-Rate-Limit-Reset", "60");
-            return exchange.getResponse().setComplete();
-        }
+        return incrementCounter.apply(key)
+                .flatMap(count -> {
+                    if (count <= requestsPerMinute) {
+                        return chain.filter(exchange);
+                    }
+                    exchange.getResponse().setStatusCode(HttpStatus.TOO_MANY_REQUESTS);
+                    exchange.getResponse().getHeaders().add("X-Rate-Limit-Reset", String.valueOf(WINDOW.toSeconds()));
+                    return exchange.getResponse().setComplete();
+                })
+                .onErrorResume(ex -> chain.filter(exchange));
     }
 
-    private String getClientIP(ServerWebExchange exchange) {
-        String xfHeader = exchange.getRequest().getHeaders().getFirst("X-Forwarded-For");
-        if (xfHeader != null && !xfHeader.isEmpty()) {
-            return xfHeader.split(",")[0];
+    private String getClientIp(ServerWebExchange exchange) {
+        String forwardedFor = exchange.getRequest().getHeaders().getFirst("X-Forwarded-For");
+        if (forwardedFor != null && !forwardedFor.isBlank()) {
+            return forwardedFor.split(",")[0].trim();
+        }
+        if (exchange.getRequest().getRemoteAddress() == null
+                || exchange.getRequest().getRemoteAddress().getAddress() == null) {
+            return "unknown";
         }
         return exchange.getRequest().getRemoteAddress().getAddress().getHostAddress();
     }

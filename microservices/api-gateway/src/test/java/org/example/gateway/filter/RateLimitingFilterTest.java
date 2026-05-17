@@ -9,13 +9,14 @@ import reactor.core.publisher.Mono;
 
 import java.lang.reflect.Field;
 import java.net.InetSocketAddress;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class RateLimitingFilterTest {
 
-    private RateLimitingFilter buildWithLimit(int rpm) throws Exception {
-        RateLimitingFilter filter = new RateLimitingFilter();
+    private RateLimitingFilter buildWithLimit(int rpm, AtomicLong counter) throws Exception {
+        RateLimitingFilter filter = new RateLimitingFilter(key -> Mono.just(counter.incrementAndGet()));
         Field f = RateLimitingFilter.class.getDeclaredField("requestsPerMinute");
         f.setAccessible(true);
         f.set(filter, rpm);
@@ -31,19 +32,14 @@ class RateLimitingFilterTest {
 
     @Test
     void shouldAllowRequestsUntilLimitAndThenReturn429() throws Exception {
-        RateLimitingFilter filter = buildWithLimit(2); // 2 запроса в минуту
+        RateLimitingFilter filter = buildWithLimit(2, new AtomicLong());
         GatewayFilterChain chain = exchange -> Mono.empty();
 
-        MockServerWebExchange ex1 = exchangeFromIp("127.0.0.1");
-        MockServerWebExchange ex2 = exchangeFromIp("127.0.0.1");
-        MockServerWebExchange ex3 = exchangeFromIp("127.0.0.1");
+        filter.filter(exchangeFromIp("127.0.0.1"), chain).block();
+        filter.filter(exchangeFromIp("127.0.0.1"), chain).block();
 
-        // первые два проходят
-        filter.filter(ex1, chain).block();
-        filter.filter(ex2, chain).block();
-
-        // третий должен получить 429
-        filter.filter(ex3, chain).block();
-        assertThat(ex3.getResponse().getStatusCode()).isEqualTo(HttpStatus.TOO_MANY_REQUESTS);
+        MockServerWebExchange blocked = exchangeFromIp("127.0.0.1");
+        filter.filter(blocked, chain).block();
+        assertThat(blocked.getResponse().getStatusCode()).isEqualTo(HttpStatus.TOO_MANY_REQUESTS);
     }
 }

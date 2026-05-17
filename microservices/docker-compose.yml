@@ -134,6 +134,7 @@ services:
       SPRING_DATASOURCE_PASSWORD: 123456
       SPRING_REDIS_HOST: redis
       USER_SERVICE_URL: http://user-service:8081
+      SERVER_PORT: 8082
     ports:
       - "8082:8082"
     networks:
@@ -192,22 +193,25 @@ services:
       - ai-service
       - notification-service
       - analytics-service
+      - redis
     environment:
       - JWT_SECRET=${JWT_SECRET}
+      - SPRING_REDIS_HOST=redis
+      - SPRING_REDIS_PORT=6379
+      - RATE_LIMIT_REQUESTS_PER_MINUTE=100
+      - SPRING_CLOUD_GATEWAY_GLOBALCORS_CORS-CONFIGURATIONS_[/**]_ALLOWEDORIGINS=http://localhost:3000
+      - SPRING_CLOUD_GATEWAY_GLOBALCORS_CORS-CONFIGURATIONS_[/**]_ALLOWEDMETHODS=GET,POST,PUT,DELETE,PATCH,OPTIONS
+      - SPRING_CLOUD_GATEWAY_GLOBALCORS_CORS-CONFIGURATIONS_[/**]_ALLOWEDHEADERS=*
+      - SPRING_CLOUD_GATEWAY_GLOBALCORS_CORS-CONFIGURATIONS_[/**]_ALLOWCREDENTIALS=true
       - SPRING_CLOUD_GATEWAY_ROUTES[0].id=user-service
       - SPRING_CLOUD_GATEWAY_ROUTES[0].uri=http://user-service:8081
-      - SPRING_CLOUD_GATEWAY_ROUTES[0].predicates[0]=Path=/api/auth/**
-      - SPRING_CLOUD_GATEWAY_ROUTES[0].predicates[1]=Path=/api/users/**
-      - SPRING_CLOUD_GATEWAY_ROUTES[0].predicates[2]=Path=/api/calendar/events
-      - SPRING_CLOUD_GATEWAY_ROUTES[5].id=calendar-route
-      - SPRING_CLOUD_GATEWAY_ROUTES[5].uri=http://user-service:8081
-      - SPRING_CLOUD_GATEWAY_ROUTES[5].predicates[0]=Path=/api/calendar/**
+      - SPRING_CLOUD_GATEWAY_ROUTES[0].predicates[0]=Path=/api/auth/**,/api/users/**,/api/calendar/**,/oauth2/**,/login/**
       - SPRING_CLOUD_GATEWAY_ROUTES[1].id=task-service
-      - SPRING_CLOUD_GATEWAY_ROUTES[1].uri=http://task-service:8086
-      - SPRING_CLOUD_GATEWAY_ROUTES[1].predicates[0]=Path=/api/tasks/**
+      - SPRING_CLOUD_GATEWAY_ROUTES[1].uri=http://task-service:8082
+      - SPRING_CLOUD_GATEWAY_ROUTES[1].predicates[0]=Path=/api/tasks/**,/api/tags/**,/api/calendar/ics
       - SPRING_CLOUD_GATEWAY_ROUTES[2].id=ai-service
       - SPRING_CLOUD_GATEWAY_ROUTES[2].uri=http://ai-service:8083
-      - SPRING_CLOUD_GATEWAY_ROUTES[2].predicates[0]=Path=/api/chat/**
+      - SPRING_CLOUD_GATEWAY_ROUTES[2].predicates[0]=Path=/api/chat/**,/api/ai/**
       - SPRING_CLOUD_GATEWAY_ROUTES[3].id=notification-service
       - SPRING_CLOUD_GATEWAY_ROUTES[3].uri=http://notification-service:8084
       - SPRING_CLOUD_GATEWAY_ROUTES[3].predicates[0]=Path=/api/notifications/**
