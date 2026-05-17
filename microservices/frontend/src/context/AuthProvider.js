@@ -3,7 +3,7 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [accessToken, setAccessToken] = useState(() => localStorage.getItem('accessToken') || null);
+  const [accessToken, setAccessToken] = useState(() => localStorage.getItem('accessToken') || localStorage.getItem('token') || null);
   const [refreshToken, setRefreshToken] = useState(() => localStorage.getItem('refreshToken') || null);
   const [user, setUser] = useState(null);
 
@@ -12,6 +12,7 @@ export function AuthProvider({ children }) {
 
   const saveTokens = useCallback((access, refresh) => {
     if (access) {
+      localStorage.setItem('token', access);
       localStorage.setItem('accessToken', access);
       setAccessToken(access);
     }
@@ -22,6 +23,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   const clearTokens = useCallback(() => {
+    localStorage.removeItem('token');
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
     setAccessToken(null);

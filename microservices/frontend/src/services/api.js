@@ -8,8 +8,10 @@ const api = axios.create({
 });
 
 export function saveAuthSession(data) {
-  if (data?.token) {
-    localStorage.setItem('token', data.token);
+  const accessToken = data?.token || data?.accessToken;
+  if (accessToken) {
+    localStorage.setItem('token', accessToken);
+    localStorage.setItem('accessToken', accessToken);
   }
   if (data?.refreshToken) {
     localStorage.setItem('refreshToken', data.refreshToken);
@@ -18,13 +20,14 @@ export function saveAuthSession(data) {
 
 export function clearAuthSession() {
   localStorage.removeItem('token');
+  localStorage.removeItem('accessToken');
   localStorage.removeItem('refreshToken');
   localStorage.removeItem('userEmail');
   localStorage.removeItem('userId');
 }
 
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem('token') || localStorage.getItem('accessToken');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -61,6 +64,7 @@ async function refreshTokenRequest() {
   }
 
   localStorage.setItem('token', newAccess);
+  localStorage.setItem('accessToken', newAccess);
   if (newRefresh) {
     localStorage.setItem('refreshToken', newRefresh);
   }

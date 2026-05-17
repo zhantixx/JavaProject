@@ -15,6 +15,7 @@ export default function OAuth2Redirect() {
 
     if (token) {
       localStorage.setItem('token', token);
+      localStorage.setItem('accessToken', token);
       window.history.replaceState({}, '', '/');
       window.location.replace('/tasks');
     } else {

@@ -33,7 +33,7 @@ function ChatPage() {
 }
 
 function AppShell() {
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem('token') || localStorage.getItem('accessToken');
   const toast = useToast();
   const location = useLocation();
 
