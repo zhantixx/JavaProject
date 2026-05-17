@@ -63,7 +63,7 @@ public class SecurityConfig {
                 .formLogin(form -> form.disable())
                 .httpBasic(basic -> basic.disable())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/register", "/api/auth/login", "/api/internal/**", "/oauth2/**", "/login/**").permitAll()
+                        .requestMatchers("/api/auth/register", "/api/auth/login", "/api/auth/providers", "/api/internal/**", "/oauth2/**", "/login/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .oauth2Login(oauth -> oauth.successHandler(this::handleOAuthSuccess))

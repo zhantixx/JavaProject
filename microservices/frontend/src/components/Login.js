@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { auth, profile, saveAuthSession } from '../services/api';
 import { useToast } from './Toast';
@@ -7,8 +7,20 @@ function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [googleEnabled, setGoogleEnabled] = useState(false);
   const navigate = useNavigate();
   const toast = useToast();
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await auth.providers();
+        setGoogleEnabled(Boolean(res.data?.googleEnabled));
+      } catch {
+        setGoogleEnabled(false);
+      }
+    })();
+  }, []);
 
   const loadMe = async () => {
     const res = await profile.me();
@@ -23,10 +35,10 @@ function Login() {
       const res = await auth.login({ email, password });
       saveAuthSession(res.data);
       await loadMe();
-      toast.success('Кіру сәтті өтті');
+      toast.success('Login successful');
       navigate('/tasks');
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Кіру қатесі');
+      toast.error(err.response?.data?.message || 'Login failed');
     } finally {
       setLoading(false);
     }
@@ -35,8 +47,10 @@ function Login() {
   return (
     <div className="mx-auto flex min-h-[calc(100vh-120px)] max-w-md items-center">
       <div className="w-full rounded-lg border border-slate-200 bg-white p-8 shadow-sm">
-        <h1 className="text-2xl font-semibold text-slate-950">Жеке Көмекші</h1>
-        <p className="mt-1 text-sm text-slate-500">Аккаунтқа кіріп, тапсырмалар мен заметкаларды басқарыңыз.</p>
+        <h1 className="text-2xl font-semibold text-slate-950">Personal Assistant</h1>
+        <p className="mt-1 text-sm text-slate-500">
+          Sign in to manage tasks, notes, and your daily workflow.
+        </p>
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
           <div>
@@ -51,7 +65,7 @@ function Login() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700">Құпиясөз</label>
+            <label className="block text-sm font-medium text-slate-700">Password</label>
             <input
               type="password"
               value={password}
@@ -65,21 +79,27 @@ function Login() {
             disabled={loading}
             className="w-full rounded-md bg-slate-900 px-4 py-2 font-medium text-white hover:bg-slate-800 disabled:opacity-60"
           >
-            {loading ? 'Кіріп жатыр...' : 'Кіру'}
+            {loading ? 'Signing in...' : 'Sign in'}
           </button>
         </form>
 
-        <a
-          href="http://localhost:8080/oauth2/authorization/google"
-          className="mt-3 flex w-full items-center justify-center rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-        >
-          Кіру (Google)
-        </a>
+        {googleEnabled ? (
+          <a
+            href="http://localhost:8080/oauth2/authorization/google"
+            className="mt-3 flex w-full items-center justify-center rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          >
+            Sign in with Google
+          </a>
+        ) : (
+          <div className="mt-3 rounded-md border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500">
+            Google sign-in is not configured for this environment.
+          </div>
+        )}
 
         <p className="mt-5 text-center text-sm text-slate-500">
-          Аккаунт жоқ па?{' '}
+          No account yet?{' '}
           <Link to="/register" className="font-medium text-slate-950 underline">
-            Тіркелу
+            Register
           </Link>
         </p>
       </div>
