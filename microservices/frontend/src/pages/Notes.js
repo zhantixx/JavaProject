@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { notes, profile } from '../services/api';
 import { useToast } from '../components/Toast';
+import { GhostButton, PageIntro, PrimaryButton, Surface } from '../components/UiKit';
 
 export default function NotesPage() {
   const toast = useToast();
@@ -12,10 +13,7 @@ export default function NotesPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  const selected = useMemo(
-    () => items.find((note) => note.id === selectedId) || null,
-    [items, selectedId]
-  );
+  const selected = useMemo(() => items.find((note) => note.id === selectedId) || null, [items, selectedId]);
 
   const loadUser = async () => {
     if (userId) return userId;
@@ -41,7 +39,7 @@ export default function NotesPage() {
         setForm({ title: list[0].title || '', content: list[0].content || '' });
       }
     } catch (err) {
-      toast.error(err.response?.data || 'Заметки жүктелмеді');
+      toast.error(err.response?.data || 'Жазбалар жүктелмеді');
     } finally {
       setLoading(false);
     }
@@ -61,8 +59,7 @@ export default function NotesPage() {
   const filtered = items.filter((note) => {
     const q = query.trim().toLowerCase();
     if (!q) return true;
-    return (note.title || '').toLowerCase().includes(q) ||
-      (note.content || '').toLowerCase().includes(q);
+    return (note.title || '').toLowerCase().includes(q) || (note.content || '').toLowerCase().includes(q);
   });
 
   const createNote = () => {
@@ -73,28 +70,28 @@ export default function NotesPage() {
   const saveNote = async (e) => {
     e.preventDefault();
     if (!form.content.trim()) {
-      toast.error('Заметка мәтінін жазыңыз');
+      toast.error('Жазба мәтінін енгізіңіз');
       return;
     }
     setSaving(true);
     try {
       const id = await loadUser();
       const payload = {
-        title: form.title.trim() || 'Жаңа заметка',
+        title: form.title.trim() || 'Жаңа жазба',
         content: form.content.trim(),
       };
       if (selectedId) {
         const res = await notes.update(id, selectedId, payload);
-        setItems((prev) => prev.map((note) => note.id === selectedId ? res.data : note));
-        toast.success('Заметка сақталды');
+        setItems((prev) => prev.map((note) => (note.id === selectedId ? res.data : note)));
+        toast.success('Жазба сақталды');
       } else {
         const res = await notes.create(id, payload);
         setItems((prev) => [res.data, ...prev]);
         setSelectedId(res.data.id);
-        toast.success('Заметка қосылды');
+        toast.success('Жазба қосылды');
       }
     } catch (err) {
-      toast.error(err.response?.data || 'Заметка сақталмады');
+      toast.error(err.response?.data || 'Жазба сақталмады');
     } finally {
       setSaving(false);
     }
@@ -109,88 +106,94 @@ export default function NotesPage() {
       setItems(rest);
       setSelectedId(rest[0]?.id || null);
       setForm(rest[0] ? { title: rest[0].title || '', content: rest[0].content || '' } : { title: '', content: '' });
-      toast.success('Заметка өшірілді');
+      toast.success('Жазба өшірілді');
     } catch (err) {
       toast.error(err.response?.data || 'Өшіру қатесі');
     }
   };
 
   return (
-    <div className="grid grid-cols-1 gap-5 lg:grid-cols-[320px_1fr]">
-      <aside className="rounded-lg border border-slate-200 bg-white shadow-sm">
-        <div className="border-b border-slate-200 p-4">
-          <div className="flex items-center justify-between">
-            <h1 className="text-lg font-semibold text-slate-950">Заметки</h1>
-            <button
-              onClick={createNote}
-              className="rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800"
-            >
-              Жаңа
-            </button>
-          </div>
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Іздеу"
-            className="mt-3 w-full rounded-md border border-slate-300 px-3 py-2 outline-none focus:border-slate-900"
-          />
-        </div>
+    <div className="space-y-6">
+      <PageIntro
+        eyebrow="Жеке архив"
+        title="Жазбалар"
+        description="Ой, жоспар және қысқа белгілерді тез сақтап, кейін оңай табыңыз."
+        stats={[
+          { label: 'Барлығы', value: items.length, hint: 'Жалпы жазба саны' },
+          { label: 'Көрсетіліп тұр', value: filtered.length, hint: 'Іздеу нәтижесі' },
+          { label: 'Таңдалған', value: selected ? '1' : '0', hint: 'Ашық жазба' },
+          { label: 'Пішім', value: 'Қарапайым', hint: 'Таза мәтін көрінісі' },
+        ]}
+      />
 
-        <div className="max-h-[620px] overflow-auto">
-          {loading ? (
-            <div className="p-4 text-sm text-slate-500">Жүктеліп жатыр...</div>
-          ) : filtered.length === 0 ? (
-            <div className="p-4 text-sm text-slate-500">Заметка жоқ</div>
-          ) : (
-            filtered.map((note) => (
-              <button
-                key={note.id}
-                onClick={() => setSelectedId(note.id)}
-                className={`block w-full border-b border-slate-100 p-4 text-left hover:bg-slate-50 ${
-                  selectedId === note.id ? 'bg-slate-100' : 'bg-white'
-                }`}
-              >
-                <div className="truncate font-medium text-slate-950">{note.title || 'Заметка'}</div>
-                <div className="mt-1 line-clamp-2 text-sm text-slate-500">{note.content}</div>
-              </button>
-            ))
-          )}
-        </div>
-      </aside>
-
-      <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-        <form onSubmit={saveNote} className="flex h-full min-h-[560px] flex-col">
-          <input
-            value={form.title}
-            onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
-            placeholder="Тақырып"
-            className="rounded-md border border-slate-300 px-3 py-2 text-lg font-semibold outline-none focus:border-slate-900"
-          />
-          <textarea
-            value={form.content}
-            onChange={(e) => setForm((prev) => ({ ...prev, content: e.target.value }))}
-            placeholder="Заметка мәтіні..."
-            className="mt-3 min-h-[420px] flex-1 resize-none rounded-md border border-slate-300 px-3 py-3 outline-none focus:border-slate-900"
-          />
-          <div className="mt-4 flex justify-between gap-2">
-            <button
-              type="button"
-              onClick={deleteNote}
-              disabled={!selectedId}
-              className="rounded-md border border-rose-200 px-4 py-2 text-sm font-medium text-rose-700 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              Өшіру
-            </button>
-            <button
-              type="submit"
-              disabled={saving}
-              className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-60"
-            >
-              {saving ? 'Сақталып жатыр...' : 'Сақтау'}
-            </button>
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[340px_1fr]">
+        <Surface className="overflow-hidden">
+          <div className="border-b border-[var(--border-color)] px-5 py-5">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-lg font-semibold text-[var(--text-primary)]">Тізім</h2>
+              <PrimaryButton onClick={createNote}>Жаңа</PrimaryButton>
+            </div>
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Жазба іздеу"
+              className="app-input mt-4"
+            />
           </div>
-        </form>
-      </section>
+
+          <div className="max-h-[640px] overflow-auto">
+            {loading ? (
+              <div className="p-5 text-sm text-[var(--text-secondary)]">Жүктеліп жатыр...</div>
+            ) : filtered.length === 0 ? (
+              <div className="p-5 text-sm text-[var(--text-secondary)]">Жазба табылмады</div>
+            ) : (
+              filtered.map((note) => (
+                <button
+                  key={note.id}
+                  onClick={() => setSelectedId(note.id)}
+                  className={`block w-full border-b border-[var(--border-color)] px-5 py-4 text-left transition ${
+                    selectedId === note.id ? 'bg-[var(--brand-soft)]' : 'bg-transparent hover:bg-[var(--card-soft)]'
+                  }`}
+                >
+                  <div className="truncate font-medium text-[var(--text-primary)]">{note.title || 'Жазба'}</div>
+                  <div className="mt-2 max-h-[72px] overflow-hidden text-sm leading-6 text-[var(--text-secondary)]">{note.content}</div>
+                </button>
+              ))
+            )}
+          </div>
+        </Surface>
+
+        <Surface className="overflow-hidden">
+          <form onSubmit={saveNote} className="flex min-h-[640px] flex-col">
+            <div className="border-b border-[var(--border-color)] px-5 py-5">
+              <input
+                value={form.title}
+                onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
+                placeholder="Жазба тақырыбы"
+                className="app-input text-lg font-semibold"
+              />
+            </div>
+
+            <div className="flex-1 p-5">
+              <textarea
+                value={form.content}
+                onChange={(e) => setForm((prev) => ({ ...prev, content: e.target.value }))}
+                placeholder="Ойыңызды осында жазыңыз..."
+                className="app-input min-h-[420px] h-full resize-none leading-7"
+              />
+            </div>
+
+            <div className="flex justify-between gap-3 border-t border-[var(--border-color)] px-5 py-5">
+              <GhostButton type="button" onClick={deleteNote} disabled={!selectedId}>
+                Өшіру
+              </GhostButton>
+              <PrimaryButton type="submit" disabled={saving}>
+                {saving ? 'Сақталып жатыр...' : 'Сақтау'}
+              </PrimaryButton>
+            </div>
+          </form>
+        </Surface>
+      </div>
     </div>
   );
 }

@@ -2,8 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { auth, profile, saveAuthSession } from '../services/api';
 import { useToast } from './Toast';
+import { PrimaryButton, Surface } from './UiKit';
 
-function Login() {
+function Login({ siteName = 'SanaBot' }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -35,74 +36,96 @@ function Login() {
       const res = await auth.login({ email, password });
       saveAuthSession(res.data);
       await loadMe();
-      toast.success('Login successful');
+      toast.success('Жүйеге кіру сәтті аяқталды');
       navigate('/tasks');
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Login failed');
+      toast.error(err.response?.data?.message || 'Кіру қатесі');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="mx-auto flex min-h-[calc(100vh-120px)] max-w-md items-center">
-      <div className="w-full rounded-lg border border-slate-200 bg-white p-8 shadow-sm">
-        <h1 className="text-2xl font-semibold text-slate-950">Personal Assistant</h1>
-        <p className="mt-1 text-sm text-slate-500">
-          Sign in to manage tasks, notes, and your daily workflow.
-        </p>
+    <div className="mx-auto grid min-h-[calc(100vh-132px)] max-w-6xl items-center gap-6 lg:grid-cols-[1.15fr_0.85fr]">
+      <Surface className="overflow-hidden">
+        <div className="p-8 md:p-10">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted-text)]">Күнделікті басқару</p>
+          <h1 className="mt-3 max-w-lg text-4xl font-semibold leading-tight text-[var(--text-primary)]">
+            {siteName} сіздің жұмыс ырғағыңызды тыныш әрі жинақы ұстайды
+          </h1>
+          <p className="mt-4 max-w-xl text-sm leading-6 text-[var(--text-secondary)]">
+            Тапсырмалар, жазбалар, күнтізбе және AI көмек бір жерде. Артық элементсіз, тек қажет нәрсе.
+          </p>
+
+          <div className="mt-8 grid gap-3 sm:grid-cols-3">
+            <div className="rounded-2xl border border-[var(--border-color)] bg-[var(--card-strong)] p-4">
+              <div className="text-sm font-medium text-[var(--text-primary)]">Тапсырмалар</div>
+              <div className="mt-1 text-xs text-[var(--text-secondary)]">Басымдық пен мерзімге қарай бақылау</div>
+            </div>
+            <div className="rounded-2xl border border-[var(--border-color)] bg-[var(--card-strong)] p-4">
+              <div className="text-sm font-medium text-[var(--text-primary)]">AI көмек</div>
+              <div className="mt-1 text-xs text-[var(--text-secondary)]">Қысқа кеңес пен идеяларды нақтылау</div>
+            </div>
+            <div className="rounded-2xl border border-[var(--border-color)] bg-[var(--card-strong)] p-4">
+              <div className="text-sm font-medium text-[var(--text-primary)]">Күнтізбе</div>
+              <div className="mt-1 text-xs text-[var(--text-secondary)]">Күндік жүктемені бір көріністе көру</div>
+            </div>
+          </div>
+        </div>
+      </Surface>
+
+      <Surface className="p-7 md:p-8">
+        <h2 className="text-2xl font-semibold text-[var(--text-primary)]">Кіру</h2>
+        <p className="mt-2 text-sm text-[var(--text-secondary)]">Аккаунтыңызға кіріп, жұмысты жалғастырыңыз.</p>
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-slate-700">Email</label>
+            <label className="mb-1 block text-sm font-medium text-[var(--text-secondary)]">Email</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 outline-none focus:border-slate-900"
+              className="app-input"
               placeholder="example@mail.com"
               required
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700">Password</label>
+            <label className="mb-1 block text-sm font-medium text-[var(--text-secondary)]">Құпиясөз</label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 outline-none focus:border-slate-900"
+              className="app-input"
+              placeholder="••••••••"
               required
             />
           </div>
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full rounded-md bg-slate-900 px-4 py-2 font-medium text-white hover:bg-slate-800 disabled:opacity-60"
-          >
-            {loading ? 'Signing in...' : 'Sign in'}
-          </button>
+          <PrimaryButton type="submit" disabled={loading} className="w-full">
+            {loading ? 'Кіріп жатыр...' : 'Жүйеге кіру'}
+          </PrimaryButton>
         </form>
 
         {googleEnabled ? (
           <a
             href="http://localhost:8080/oauth2/authorization/google"
-            className="mt-3 flex w-full items-center justify-center rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            className="mt-3 flex w-full items-center justify-center rounded-xl border border-[var(--border-color)] bg-[var(--card-strong)] px-4 py-3 text-sm font-medium text-[var(--text-primary)] transition hover:border-[var(--brand-border)] hover:text-[var(--brand-strong)]"
           >
-            Sign in with Google
+            Google арқылы кіру
           </a>
         ) : (
-          <div className="mt-3 rounded-md border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500">
-            Google sign-in is not configured for this environment.
+          <div className="mt-3 rounded-xl border border-[var(--border-color)] bg-[var(--card-soft)] px-4 py-3 text-sm text-[var(--text-secondary)]">
+            Google арқылы кіру бұл ортада бапталмаған.
           </div>
         )}
 
-        <p className="mt-5 text-center text-sm text-slate-500">
-          No account yet?{' '}
-          <Link to="/register" className="font-medium text-slate-950 underline">
-            Register
+        <p className="mt-5 text-center text-sm text-[var(--text-secondary)]">
+          Аккаунтыңыз жоқ па?{' '}
+          <Link to="/register" className="font-medium text-[var(--brand-strong)]">
+            Тіркелу
           </Link>
         </p>
-      </div>
+      </Surface>
     </div>
   );
 }
