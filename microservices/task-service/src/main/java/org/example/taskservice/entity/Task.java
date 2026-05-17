@@ -30,10 +30,10 @@ public class Task {
     private Long userId;
 
     @Column(name = "reminder_sent")
-    private boolean reminderSent;
+    private Boolean reminderSent = false;
 
     @Column(name = "overdue_sent")
-    private boolean overdueSent;
+    private Boolean overdueSent = false;
 
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
@@ -55,6 +55,19 @@ public class Task {
         this.status = status;
         this.deadline = deadline;
         this.userId = userId;
+        this.reminderSent = false;
+        this.overdueSent = false;
+    }
+
+    @PrePersist
+    @PreUpdate
+    private void normalizeFlags() {
+        if (reminderSent == null) {
+            reminderSent = false;
+        }
+        if (overdueSent == null) {
+            overdueSent = false;
+        }
     }
 
     public Long getId() { return id; }
@@ -71,10 +84,10 @@ public class Task {
     public void setDeadline(LocalDateTime deadline) { this.deadline = deadline; }
     public Long getUserId() { return userId; }
     public void setUserId(Long userId) { this.userId = userId; }
-    public boolean isReminderSent() { return reminderSent; }
-    public void setReminderSent(boolean reminderSent) { this.reminderSent = reminderSent; }
-    public boolean isOverdueSent() { return overdueSent; }
-    public void setOverdueSent(boolean overdueSent) { this.overdueSent = overdueSent; }
+    public boolean isReminderSent() { return Boolean.TRUE.equals(reminderSent); }
+    public void setReminderSent(Boolean reminderSent) { this.reminderSent = reminderSent != null ? reminderSent : false; }
+    public boolean isOverdueSent() { return Boolean.TRUE.equals(overdueSent); }
+    public void setOverdueSent(Boolean overdueSent) { this.overdueSent = overdueSent != null ? overdueSent : false; }
 
     public Set<Tag> getTags() { return tags; }
     public void setTags(Set<Tag> tags) { this.tags = tags != null ? tags : new HashSet<>(); }
