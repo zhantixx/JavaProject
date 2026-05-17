@@ -29,6 +29,12 @@ public class Task {
     @Column(name = "user_id")
     private Long userId;
 
+    @Column(name = "reminder_sent")
+    private boolean reminderSent;
+
+    @Column(name = "overdue_sent")
+    private boolean overdueSent;
+
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
             name = "task_tags",
@@ -65,6 +71,10 @@ public class Task {
     public void setDeadline(LocalDateTime deadline) { this.deadline = deadline; }
     public Long getUserId() { return userId; }
     public void setUserId(Long userId) { this.userId = userId; }
+    public boolean isReminderSent() { return reminderSent; }
+    public void setReminderSent(boolean reminderSent) { this.reminderSent = reminderSent; }
+    public boolean isOverdueSent() { return overdueSent; }
+    public void setOverdueSent(boolean overdueSent) { this.overdueSent = overdueSent; }
 
     public Set<Tag> getTags() { return tags; }
     public void setTags(Set<Tag> tags) { this.tags = tags != null ? tags : new HashSet<>(); }

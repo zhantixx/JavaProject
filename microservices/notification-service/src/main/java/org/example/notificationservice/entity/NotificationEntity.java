@@ -13,6 +13,8 @@ public class NotificationEntity {
 
     private Long userId;
 
+    private String recipientEmail;
+
     @Enumerated(EnumType.STRING)
     private NotificationType type;
 
@@ -42,6 +44,9 @@ public class NotificationEntity {
 
     public Long getUserId() { return userId; }
     public void setUserId(Long userId) { this.userId = userId; }
+
+    public String getRecipientEmail() { return recipientEmail; }
+    public void setRecipientEmail(String recipientEmail) { this.recipientEmail = recipientEmail; }
 
     public NotificationType getType() { return type; }
     public void setType(NotificationType type) { this.type = type; }

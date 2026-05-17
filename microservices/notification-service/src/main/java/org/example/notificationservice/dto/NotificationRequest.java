@@ -2,6 +2,7 @@ package org.example.notificationservice.dto;
 
 public class NotificationRequest {
     private Long userId;
+    private String recipientEmail;
     private String type; // EMAIL or PUSH
     private String title;
     private String content;
@@ -9,6 +10,9 @@ public class NotificationRequest {
     // Getters and Setters
     public Long getUserId() { return userId; }
     public void setUserId(Long userId) { this.userId = userId; }
+
+    public String getRecipientEmail() { return recipientEmail; }
+    public void setRecipientEmail(String recipientEmail) { this.recipientEmail = recipientEmail; }
 
     public String getType() { return type; }
     public void setType(String type) { this.type = type; }

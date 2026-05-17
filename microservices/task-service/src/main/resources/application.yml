@@ -4,6 +4,8 @@ server:
 spring:
   application:
     name: task-service
+  kafka:
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
   datasource:
     url: jdbc:postgresql://postgres-task:5432/task_db
     username: postgres
@@ -16,6 +18,11 @@ spring:
 user:
   service:
     url: http://user-service:8081
+
+task:
+  reminders:
+    window-minutes: 60
+    cron: "0 */5 * * * *"
 
 logging:
   level:
