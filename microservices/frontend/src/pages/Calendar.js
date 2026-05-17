@@ -3,6 +3,7 @@ import TaskForm from '../components/TaskForm';
 import { tasks } from '../services/api';
 import { useToast } from '../components/Toast';
 import { GhostButton, PageIntro, Surface } from '../components/UiKit';
+import { formatLongDate, formatMonthYear } from '../utils/date';
 
 function dateKey(date) {
   const y = date.getFullYear();
@@ -12,7 +13,7 @@ function dateKey(date) {
 }
 
 function monthLabel(date) {
-  return date.toLocaleDateString('kk-KZ', { month: 'long', year: 'numeric' });
+  return formatMonthYear(date);
 }
 
 export default function CalendarPage() {
@@ -80,7 +81,7 @@ export default function CalendarPage() {
         description="Ай ішіндегі мерзімдерді бақылап, таңдалған күнге жаңа тапсырма қосыңыз."
         stats={[
           { label: 'Ай', value: monthLabel(current), hint: 'Ағымдағы көрініс' },
-          { label: 'Таңдалған күн', value: new Date(selected).toLocaleDateString('kk-KZ'), hint: 'Негізгі фокус' },
+          { label: 'Таңдалған күн', value: formatLongDate(selected), hint: 'Негізгі фокус' },
           { label: 'Бүгінгі жазбалар', value: byDay[dateKey(new Date())]?.length || 0, hint: 'Бүгінгі мерзімдер' },
           { label: 'Барлығы', value: taskList.length, hint: 'Күнтізбедегі барлық тапсырма' },
         ]}
@@ -156,7 +157,7 @@ export default function CalendarPage() {
             <div className="border-b border-[var(--border-color)] px-5 py-5">
               <h2 className="text-lg font-semibold text-[var(--text-primary)]">Таңдалған күн</h2>
               <p className="mt-1 text-sm text-[var(--text-secondary)]">
-                {new Date(selected).toLocaleDateString('kk-KZ')}
+                {formatLongDate(selected)}
               </p>
             </div>
 

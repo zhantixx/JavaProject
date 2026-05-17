@@ -2,14 +2,11 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { clearAuthSession, profile } from '../services/api';
 import { useToast } from '../components/Toast';
 import { GhostButton, PageIntro, PrimaryButton, Surface } from '../components/UiKit';
+import { formatLongDate } from '../utils/date';
 
 function formatCreatedAt(createdAt) {
   if (!createdAt) return 'Көрсетілмеген';
-  return new Date(createdAt).toLocaleString('kk-KZ', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
+  return formatLongDate(createdAt);
 }
 
 async function fileToDataUrl(file) {
