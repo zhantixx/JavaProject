@@ -24,7 +24,7 @@ class JwtUtilTest {
 
     @Test
     void shouldGenerateAndParseToken_withRole() throws Exception {
-        JwtUtil util = buildWithSecretAndExpiration(3_600_000L); // 1 час
+        JwtUtil util = buildWithSecretAndExpiration(3_600_000L); // 1 С‡Р°СЃ
 
         String token = util.generateToken("user@example.com", "ADMIN");
 
@@ -37,9 +37,11 @@ class JwtUtilTest {
 
     @Test
     void shouldTreatTokenAsExpired() throws Exception {
-        JwtUtil util = buildWithSecretAndExpiration(1L); // 1 мс
+        JwtUtil util = buildWithSecretAndExpiration(-1000L); // 1000 РјСЃ
         String token = util.generateToken("expired@example.com", "USER");
-        try { Thread.sleep(5L); } catch (InterruptedException ignored) {}
+
+        // РџСЂРѕРІРµСЂСЏРµРј С‚РѕРєРµРЅ РїРѕСЃР»Рµ РЅРµР±РѕР»СЊС€РѕР№ РїР°СѓР·С‹ (РёР·Р±РµРіР°СЏ Р»РѕР¶РЅРѕР№ РёСЃС‚РµРєС†РёРё СЃСЂРѕРєР° РґРµР№СЃС‚РІРёСЏ)
+
         assertThat(util.validateToken(token, org.springframework.security.core.userdetails.User
                 .withUsername("expired@example.com")
                 .password("N/A").authorities("ROLE_USER").build())).isFalse();

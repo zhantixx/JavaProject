@@ -58,6 +58,14 @@ public class JwtUtil {
         return extractExpiration(token).before(new Date());
     }
 
+
+    public String generateToken(String username, String role, Long userId) {
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("role", role);
+        claims.put("userId", userId.toString());
+        return createToken(claims, username, expiration);
+    }
+
     public String generateToken(String username, String role) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("role", role);
@@ -74,6 +82,16 @@ public class JwtUtil {
         return generateToken(username, "USER");
     }
 
+    public Long extractUserId(String token) {
+        Object userIdObj = extractAllClaims(token).get("userId");
+        if (userIdObj instanceof Integer) {
+            return ((Integer) userIdObj).longValue();
+        } else if (userIdObj instanceof Long) {
+            return (Long) userIdObj;
+        }
+        return null;
+    }
+
     private String createToken(Map<String, Object> claims, String subject, Long expirationMillis) {
         return Jwts.builder()
                 .setClaims(claims)
@@ -85,8 +103,12 @@ public class JwtUtil {
     }
 
     public Boolean validateToken(String token, UserDetails userDetails) {
-        final String username = extractUsername(token);
-        return (username.equals(userDetails.getUsername()) && !isTokenExpired(token));
+        try {
+            final String username = extractUsername(token);
+            return username.equals(userDetails.getUsername()) && !isTokenExpired(token);
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     public Boolean validateRefreshToken(String token) {

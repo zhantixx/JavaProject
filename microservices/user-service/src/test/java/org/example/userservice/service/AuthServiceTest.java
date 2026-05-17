@@ -4,12 +4,15 @@ import org.example.userservice.dto.AuthRequest;
 import org.example.userservice.dto.AuthResponse;
 import org.example.userservice.dto.RegisterRequest;
 import org.example.userservice.entity.User;
+import org.example.userservice.repository.RefreshTokenRepository;
 import org.example.userservice.repository.UserRepository;
 import org.example.userservice.utils.JwtUtil;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -30,9 +33,33 @@ class AuthServiceTest {
     @Mock private AuthenticationManager authenticationManager;
     @Mock private UserDetailsService userDetailsService;
     @Mock private AuditService auditService;
+    @Mock private RefreshTokenRepository refreshTokenRepository; // Добавлено
 
     @InjectMocks
     private AuthService authService;
+
+    @Mock
+    private LoginAttemptService loginAttemptService;
+
+    @BeforeEach
+    void setUp() {
+        MockitoAnnotations.openMocks(this);
+
+        // Настраиваем mock refreshTokenRepository для использования
+        when(refreshTokenRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(jwtUtil.generateRefreshToken(anyString())).thenReturn("refresh-token");
+        when(jwtUtil.getRefreshExpiration()).thenReturn(604_800_000L);
+        authService = new AuthService(
+            userRepository,
+            passwordEncoder,
+            jwtUtil,
+            authenticationManager,
+            userDetailsService,
+            auditService,
+            refreshTokenRepository,
+            loginAttemptService
+        );
+    }
 
     @Test
     void register_shouldCreateUserAndReturnToken() {
@@ -42,8 +69,12 @@ class AuthServiceTest {
         request.setName("Test User");
 
         when(passwordEncoder.encode("password")).thenReturn("encoded");
-        when(jwtUtil.generateToken("test@example.com")).thenReturn("jwt-token");
-        when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(jwtUtil.generateToken("test@example.com", "USER", 1L)).thenReturn("jwt-token");
+        when(userRepository.save(any(User.class))).thenAnswer(inv -> {
+            User user = inv.getArgument(0);
+            user.setId(1L);
+            return user;
+        });
 
         AuthResponse response = authService.register(request, "127.0.0.1");
 
@@ -62,8 +93,10 @@ class AuthServiceTest {
         mockUser.setId(1L);
         mockUser.setEmail("test@example.com");
 
+        when(loginAttemptService.isBlocked("test@example.com")).thenReturn(false);
         when(userRepository.findByEmail("test@example.com")).thenReturn(java.util.Optional.of(mockUser));
-        when(jwtUtil.generateToken("test@example.com")).thenReturn("jwt-token");
+        when(jwtUtil.generateToken(eq("test@example.com"), eq("USER"), anyLong()))
+            .thenReturn("jwt-token");
         UserDetails userDetails = org.springframework.security.core.userdetails.User
                 .withUsername("test@example.com")
                 .password("encoded")

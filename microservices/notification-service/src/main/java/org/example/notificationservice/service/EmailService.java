@@ -36,6 +36,15 @@ public class EmailService {
         send(to, subject, body, true);
     }
 
+    public boolean sendEmail(String to, String subject, String body) {
+        if (!enabled || to == null || to.isBlank()) {
+            sendPlainText(to, subject, body);
+            return false;
+        }
+        sendPlainText(to, subject, body);
+        return true;
+    }
+
     public void sendReminder(String to, String userName, String taskTitle, String deadline) {
         String subject = "Reminder: " + taskTitle;
         String body = String.format(
