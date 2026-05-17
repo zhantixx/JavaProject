@@ -1,6 +1,7 @@
 package org.example.gateway.filter;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
@@ -24,6 +25,7 @@ public class RateLimitingFilter implements GlobalFilter, Ordered {
     @Value("${rate.limit.requests-per-minute:100}")
     private int requestsPerMinute;
 
+    @Autowired
     public RateLimitingFilter(ReactiveStringRedisTemplate redisTemplate) {
         this(key -> redisTemplate.opsForValue()
                 .increment(key)
@@ -32,8 +34,12 @@ public class RateLimitingFilter implements GlobalFilter, Ordered {
                         : Mono.just(count)));
     }
 
-    RateLimitingFilter(Function<String, Mono<Long>> incrementCounter) {
+    private RateLimitingFilter(Function<String, Mono<Long>> incrementCounter) {
         this.incrementCounter = incrementCounter;
+    }
+
+    static RateLimitingFilter forTests(Function<String, Mono<Long>> incrementCounter) {
+        return new RateLimitingFilter(incrementCounter);
     }
 
     @Override

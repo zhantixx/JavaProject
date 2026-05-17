@@ -18,10 +18,10 @@ public class OAuthAccountService {
     private final OAuthAccountRepository repository;
     private final RestTemplate restTemplate;
 
-    @Value("${spring.security.oauth2.client.registration.google.client-id}")
+    @Value("${spring.security.oauth2.client.registration.google.client-id:}")
     private String googleClientId;
 
-    @Value("${spring.security.oauth2.client.registration.google.client-secret}")
+    @Value("${spring.security.oauth2.client.registration.google.client-secret:}")
     private String googleClientSecret;
 
     private static final String GOOGLE = "google";

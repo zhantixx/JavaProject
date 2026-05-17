@@ -16,7 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class RateLimitingFilterTest {
 
     private RateLimitingFilter buildWithLimit(int rpm, AtomicLong counter) throws Exception {
-        RateLimitingFilter filter = new RateLimitingFilter(key -> Mono.just(counter.incrementAndGet()));
+        RateLimitingFilter filter = RateLimitingFilter.forTests(key -> Mono.just(counter.incrementAndGet()));
         Field f = RateLimitingFilter.class.getDeclaredField("requestsPerMinute");
         f.setAccessible(true);
         f.set(filter, rpm);
