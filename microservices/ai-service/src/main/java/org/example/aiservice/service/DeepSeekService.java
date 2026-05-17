@@ -6,8 +6,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 
@@ -70,13 +72,17 @@ public class DeepSeekService {
     }
 
     private String callDeepSeekAPI(String prompt) {
+        if (apiKey == null || apiKey.isBlank()) {
+            return buildFallbackAdvice(prompt, "AI кілті бапталмаған");
+        }
+
         try {
             WebClient webClient = webClientBuilder.baseUrl(apiUrl).build();
 
             Map<String, Object> requestBody = new HashMap<>();
             requestBody.put("model", model);
             requestBody.put("messages", new Object[]{
-                    Map.of("role", "system", "content", "Ты умный ассистент. Отвечай кратко и по делу, на русском языке."),
+                    Map.of("role", "system", "content", "Сен жеке ассистентсің. Қазақ тілінде қысқа, анық және пайдалы жауап бер. Егер тапсырма күрделі болса, оны қадамдарға бөл."),
                     Map.of("role", "user", "content", prompt)
             });
             requestBody.put("stream", false);
@@ -91,10 +97,57 @@ public class DeepSeekService {
 
             ObjectMapper mapper = new ObjectMapper();
             JsonNode root = mapper.readTree(responseJson);
-            return root.path("choices").get(0).path("message").path("content").asText();
-
-        } catch (Exception e) {
-            return "Извините, произошла ошибка: " + e.getMessage();
+            JsonNode contentNode = root.path("choices").get(0).path("message").path("content");
+            if (contentNode == null || contentNode.isMissingNode() || contentNode.asText().isBlank()) {
+                return buildFallbackAdvice(prompt, "AI бос жауап қайтарды");
+            }
+            return contentNode.asText();
+        } catch (WebClientResponseException.Unauthorized ex) {
+            return buildFallbackAdvice(prompt, "DeepSeek авторизациясы сәтсіз өтті");
+        } catch (WebClientResponseException.Forbidden ex) {
+            return buildFallbackAdvice(prompt, "DeepSeek рұқсат бермеді");
+        } catch (Exception ex) {
+            return buildFallbackAdvice(prompt, "AI сервисіне қосылу уақытша мүмкін болмады");
         }
+    }
+
+    private String buildFallbackAdvice(String prompt, String reason) {
+        String normalized = prompt == null ? "" : prompt.trim();
+        String lower = normalized.toLowerCase(Locale.ROOT);
+        boolean planning = lower.contains("жоспар")
+                || lower.contains("step")
+                || lower.contains("қадам")
+                || lower.contains("task")
+                || lower.contains("тапсырма")
+                || lower.contains("сложн")
+                || lower.contains("күрделі");
+
+        if (planning) {
+            return """
+                    AI уақытша шектеулі режимде жұмыс істеп тұр: %s.
+
+                    Күрделі тапсырманы былай бөлуді ұсынамын:
+                    1) Нәтижені нақтылаңыз: соңында не дайын болуы керек екенін бір сөйлеммен жазыңыз.
+                    2) Тапсырманы 3-5 шағын бөлікке бөліңіз.
+                    3) Алғашқы 30-60 минутта орындалатын ең жеңіл қадамнан бастаңыз.
+                    4) Әр қадамға жеке уақыт бекітіңіз.
+                    5) Соңында тексеру және түзетуге бөлек уақыт қалдырыңыз.
+
+                    Қысқа кеңес:
+                    - Егер іс түсініксіз болса, алдымен зерттеу, сосын орындау деп екіге бөліңіз.
+                    - Егер іс үлкен болса, оны бүгінгі қадам және кейінгі қадам деп ажыратыңыз.
+                    - Егер мерзім жақын болса, сапасы жоғары ең маңызды бөлігін бірінші аяқтаңыз.
+                    """.formatted(reason);
+        }
+
+        return """
+                AI уақытша шектеулі режимде жұмыс істеп тұр: %s.
+
+                Қазір мынадай қысқа тәсілді қолданыңыз:
+                1) Мақсатты бір сөйлеммен жазыңыз.
+                2) Келесі нақты әрекетті таңдаңыз.
+                3) Оған шекті уақыт қойыңыз.
+                4) Аяқтағаннан кейін келесі қадамды ғана анықтаңыз.
+                """.formatted(reason);
     }
 }
