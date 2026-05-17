@@ -25,7 +25,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         this.userDetailsService = userDetailsService;
     }
 
-
     @Override
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
@@ -33,45 +32,52 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
 
         String path = request.getRequestURI();
-        String method = request.getMethod();
 
-        // Пропускаем только GET запросы к календарю (получение событий)
-        if (path.equals("/api/calendar/events") && method.equals("GET")) {
-            chain.doFilter(request, response);
-            return;
-        }
-
-        // POST запросы к календарю требуют авторизации
-        if (path.startsWith("/oauth2/") || path.startsWith("/login/oauth2/")) {
+        if (path.startsWith("/api/auth/") || path.startsWith("/oauth2/") || path.startsWith("/login/")) {
             chain.doFilter(request, response);
             return;
         }
 
         final String authHeader = request.getHeader("Authorization");
-        System.out.println(">>> Auth header: " + authHeader);
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            chain.doFilter(request, response);
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.setContentType("application/json");
+            response.getWriter().write("{\"error\":\"Missing token\"}");
             return;
         }
 
-        final String jwt = authHeader.substring(7);
-        final String username = jwtUtil.extractUsername(jwt);
-        System.out.println(">>> Extracted username: " + username);
+        try {
+            final String jwt = authHeader.substring(7);
+            final String username = jwtUtil.extractUsername(jwt);
 
-        if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            UserDetails userDetails = this.userDetailsService.loadUserByUsername(username);
-            System.out.println(">>> UserDetails loaded: " + (userDetails != null));
-            if (jwtUtil.validateToken(jwt, userDetails)) {
-                UsernamePasswordAuthenticationToken authToken =
-                        new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
-                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                SecurityContextHolder.getContext().setAuthentication(authToken);
-                System.out.println(">>> Authentication set for user: " + username);
-            } else {
-                System.out.println(">>> Token validation failed");
+            System.out.println("Token username: " + username);
+
+            if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                UserDetails userDetails = this.userDetailsService.loadUserByUsername(username);
+
+                if (jwtUtil.validateToken(jwt, userDetails)) {
+                    UsernamePasswordAuthenticationToken authToken =
+                            new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+                    authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    SecurityContextHolder.getContext().setAuthentication(authToken);
+                    System.out.println("Authentication successful for: " + username);
+                } else {
+                    System.out.println("Token validation failed");
+                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                    response.setContentType("application/json");
+                    response.getWriter().write("{\"error\":\"Invalid token\"}");
+                    return;
+                }
             }
+        } catch (Exception e) {
+            System.out.println("Error processing token: " + e.getMessage());
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.setContentType("application/json");
+            response.getWriter().write("{\"error\":\"Token error: " + e.getMessage() + "\"}");
+            return;
         }
+
         chain.doFilter(request, response);
     }
 }

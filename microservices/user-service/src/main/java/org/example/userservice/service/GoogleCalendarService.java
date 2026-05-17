@@ -6,10 +6,16 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+
 @Service
 public class GoogleCalendarService {
 
     private final RestTemplate restTemplate;
+    private static final DateTimeFormatter RFC3339 =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssXXX");
 
     @Value("${google.calendar.api.base-url:https://www.googleapis.com/calendar/v3}")
     private String baseUrl;
@@ -19,10 +25,64 @@ public class GoogleCalendarService {
     }
 
     /**
+     * Создает событие в календаре primary (принимает LocalDateTime)
+     *
+     * @param accessToken - Google OAuth2 access token
+     * @param summary - заголовок события
+     * @param description - описание события
+     * @param startDateTime - время начала (LocalDateTime)
+     * @param endDateTime - время окончания (LocalDateTime)
+     * @return id созданного события Google Calendar
+     */
+    public String createEvent(String accessToken,
+                              String summary,
+                              String description,
+                              LocalDateTime startDateTime,
+                              LocalDateTime endDateTime) {
+        // Конвертируем LocalDateTime в RFC3339 строку с системным часовым поясом
+        String startStr = startDateTime.atZone(ZoneId.systemDefault())
+                .format(RFC3339);
+        String endStr = endDateTime.atZone(ZoneId.systemDefault())
+                .format(RFC3339);
+
+        return createEvent(accessToken, summary, description, startStr, endStr, "UTC");
+    }
+
+    /**
+     * Создает событие в календаре primary (принимает LocalDateTime с указанием часового пояса)
+     *
+     * @param accessToken - Google OAuth2 access token
+     * @param summary - заголовок события
+     * @param description - описание события
+     * @param startDateTime - время начала (LocalDateTime)
+     * @param endDateTime - время окончания (LocalDateTime)
+     * @param timeZone - часовой пояс (например, "Asia/Almaty", "Europe/Moscow", "UTC")
+     * @return id созданного события Google Calendar
+     */
+    public String createEvent(String accessToken,
+                              String summary,
+                              String description,
+                              LocalDateTime startDateTime,
+                              LocalDateTime endDateTime,
+                              String timeZone) {
+        // Конвертируем LocalDateTime в RFC3339 строку с указанным часовым поясом
+        String startStr = startDateTime.atZone(ZoneId.of(timeZone))
+                .format(RFC3339);
+        String endStr = endDateTime.atZone(ZoneId.of(timeZone))
+                .format(RFC3339);
+
+        return createEvent(accessToken, summary, description, startStr, endStr, timeZone);
+    }
+
+    /**
      * Создает событие в календаре primary.
      * Время должно быть в формате RFC3339, например: 2026-05-11T10:00:00Z или 2026-05-11T10:00:00+03:00
-     * timeZone можно передать, по умолчанию UTC.
      *
+     * @param accessToken - Google OAuth2 access token
+     * @param summary - заголовок события
+     * @param description - описание события
+     * @param startDateTime - время начала в формате RFC3339 (String)
+     * @param endDateTime - время окончания в формате RFC3339 (String)
      * @return id созданного события Google Calendar
      */
     public String createEvent(String accessToken,
@@ -33,6 +93,18 @@ public class GoogleCalendarService {
         return createEvent(accessToken, summary, description, startDateTime, endDateTime, "UTC");
     }
 
+    /**
+     * Создает событие в календаре primary.
+     * Время должно быть в формате RFC3339, например: 2026-05-11T10:00:00Z или 2026-05-11T10:00:00+03:00
+     *
+     * @param accessToken - Google OAuth2 access token
+     * @param summary - заголовок события
+     * @param description - описание события
+     * @param startDateTime - время начала в формате RFC3339 (String)
+     * @param endDateTime - время окончания в формате RFC3339 (String)
+     * @param timeZone - часовой пояс (например, "Asia/Almaty", "Europe/Moscow", "UTC")
+     * @return id созданного события Google Calendar
+     */
     public String createEvent(String accessToken,
                               String summary,
                               String description,
