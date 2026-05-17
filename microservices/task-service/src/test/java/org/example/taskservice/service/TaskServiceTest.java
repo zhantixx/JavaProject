@@ -3,7 +3,10 @@ package org.example.taskservice.service;
 import org.example.taskservice.dto.TaskRequest;
 import org.example.taskservice.dto.TaskResponse;
 import org.example.taskservice.entity.Task;
+import org.example.taskservice.mapper.TaskMapper;
+import org.example.taskservice.repository.TagRepository;
 import org.example.taskservice.repository.TaskRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -23,9 +26,27 @@ import static org.mockito.Mockito.*;
 class TaskServiceTest {
 
     @Mock private TaskRepository taskRepository;
+    @Mock private TagRepository tagRepository;
     @Mock private RestTemplate restTemplate;
+    @Mock private TaskMapper taskMapper;
     @InjectMocks
     private TaskService taskService;
+
+    @BeforeEach
+    void setUpMapper() {
+        lenient().when(taskMapper.toResponse(any(Task.class))).thenAnswer(invocation -> {
+            Task task = invocation.getArgument(0);
+            return new TaskResponse(
+                    task.getId(),
+                    task.getTitle(),
+                    task.getDescription(),
+                    task.getPriority(),
+                    task.getStatus(),
+                    task.getDeadline(),
+                    task.getUserId()
+            );
+        });
+    }
 
     @Test
     void createTask_shouldSaveAndReturnResponse() {

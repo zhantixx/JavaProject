@@ -35,6 +35,7 @@
         <testcontainers.version>1.19.8</testcontainers.version>
         <byte-buddy.version>1.14.10</byte-buddy.version>
         <mockito.version>5.10.0</mockito.version>
+        <mapstruct.version>1.5.5.Final</mapstruct.version>
     </properties>
 
     <dependencyManagement>
@@ -79,6 +80,11 @@
                 <artifactId>mockito-junit-jupiter</artifactId>
                 <version>${mockito.version}</version>
                 <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.mapstruct</groupId>
+                <artifactId>mapstruct</artifactId>
+                <version>${mapstruct.version}</version>
             </dependency>
 
             <dependency>

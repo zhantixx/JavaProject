@@ -2,8 +2,9 @@ package org.example.taskservice.service;
 
 import org.example.taskservice.dto.TaskRequest;
 import org.example.taskservice.dto.TaskResponse;
-import org.example.taskservice.entity.Tag;
 import org.example.taskservice.entity.Task;
+import org.example.taskservice.entity.Tag;
+import org.example.taskservice.mapper.TaskMapper;
 import org.example.taskservice.repository.TagRepository;
 import org.example.taskservice.repository.TaskRepository;
 import org.springframework.beans.factory.annotation.Value;
@@ -25,37 +26,58 @@ public class TaskService {
     private final TaskRepository taskRepository;
     private final TagRepository tagRepository;
     private final RestTemplate restTemplate;
+    private final TaskMapper taskMapper;
 
-    @Value("${user.service.url:http://localhost:8081}")
+    @Value("${user.service.url:http://user-service:8081}")
     private String userServiceUrl;
 
-    public TaskService(TaskRepository taskRepository, TagRepository tagRepository, RestTemplate restTemplate) {
+    public TaskService(TaskRepository taskRepository,
+                       TagRepository tagRepository,
+                       RestTemplate restTemplate,
+                       TaskMapper taskMapper) {
         this.taskRepository = taskRepository;
         this.tagRepository = tagRepository;
         this.restTemplate = restTemplate;
+        this.taskMapper = taskMapper;
     }
 
     public TaskResponse createTask(TaskRequest request, Long userId) {
-        Task task = new Task();
-        task.setTitle(request.getTitle());
-        task.setDescription(request.getDescription());
-        task.setPriority(request.getPriority());
-        task.setStatus(request.getStatus() != null ? request.getStatus() : "PLANNED");
-        task.setDeadline(request.getDeadline());
-        task.setUserId(userId);
+        if (userId == null || userId <= 0) {
+            throw new IllegalArgumentException("Invalid User ID: " + userId);
+        }
 
-        Set<Tag> tags = resolveTags(userId, request.getTagIds());
-        task.setTags(tags);
+        System.out.println("Creating task for User ID: " + userId);
+        System.out.println("Task request details: " + request);
 
-        Task saved = taskRepository.save(task);
-        sendAuditLog(userId, "CREATE_TASK", "Task ID: " + saved.getId());
-        return mapToResponse(saved);
+        try {
+            Task task = new Task();
+            task.setTitle(request.getTitle());
+            task.setDescription(request.getDescription());
+            task.setPriority(request.getPriority());
+            task.setStatus(request.getStatus() != null ? request.getStatus() : "PLANNED");
+            task.setDeadline(request.getDeadline());
+            task.setUserId(userId);
+
+            if (request.getTagIds() != null && !request.getTagIds().isEmpty()) {
+                Set<Tag> tags = resolveTags(userId, request.getTagIds());
+                task.setTags(tags);
+            }
+
+            Task saved = taskRepository.save(task);
+            System.out.println("Task successfully saved for User ID: " + userId);
+            sendAuditLog(userId, "CREATE_TASK", "Task ID: " + saved.getId());
+            return taskMapper.toResponse(saved);
+        } catch (Exception e) {
+            System.err.println("Error while creating task: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Failed to create task", e);
+        }
     }
 
     public List<TaskResponse> getUserTasks(Long userId) {
         return taskRepository.findByUserId(userId)
                 .stream()
-                .map(this::mapToResponse)
+                .map(taskMapper::toResponse)
                 .collect(Collectors.toList());
     }
 
@@ -70,9 +92,7 @@ public class TaskService {
         } else {
             tasks = taskRepository.findByUserId(userId);
         }
-        return tasks.stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+        return tasks.stream().map(taskMapper::toResponse).collect(Collectors.toList());
     }
 
     public List<TaskResponse> getUserTasksByTag(Long userId, Long tagId, LocalDateTime from, LocalDateTime to) {
@@ -86,15 +106,11 @@ public class TaskService {
         } else {
             tasks = taskRepository.findByUserIdAndTags_Id(userId, tagId);
         }
-        return tasks.stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+        return tasks.stream().map(taskMapper::toResponse).collect(Collectors.toList());
     }
 
     public TaskResponse updateTask(Long id, TaskRequest request, Long userId) {
-        Task task = taskRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Task not found"));
-
+        Task task = taskRepository.findById(id).orElseThrow(() -> new RuntimeException("Task not found"));
         if (!task.getUserId().equals(userId)) {
             throw new RuntimeException("You don't own this task");
         }
@@ -112,111 +128,64 @@ public class TaskService {
 
         Task updated = taskRepository.save(task);
         sendAuditLog(userId, "UPDATE_TASK", "Task ID: " + id);
-        return mapToResponse(updated);
+        return taskMapper.toResponse(updated);
     }
 
     public TaskResponse changeStatus(Long id, String newStatus, Long userId) {
-        Task task = taskRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Task not found"));
-
+        Task task = taskRepository.findById(id).orElseThrow(() -> new RuntimeException("Task not found"));
         if (!task.getUserId().equals(userId)) {
             throw new RuntimeException("You don't own this task");
         }
 
-        String current = task.getStatus() == null ? "PLANNED" : task.getStatus().toUpperCase();
-        String target = newStatus == null ? current : newStatus.toUpperCase();
-
-        Set<String> allowedTargets =
-                switch (current) {
-                    case "PLANNED" -> Set.of("IN_PROGRESS", "CANCELED");
-                    case "IN_PROGRESS" -> Set.of("DONE", "BLOCKED", "CANCELED");
-                    case "BLOCKED" -> Set.of("IN_PROGRESS", "CANCELED");
-                    case "OVERDUE" -> Set.of("IN_PROGRESS", "DONE", "CANCELED");
-                    default -> Set.of();
-                };
-
-        if (current.equals("DONE") || current.equals("CANCELED")) {
-            throw new IllegalArgumentException("Task is in a final state: " + current);
-        }
-        if (!allowedTargets.contains(target)) {
-            throw new IllegalArgumentException("Illegal status transition: " + current + " -> " + target);
-        }
-
-        task.setStatus(target);
+        task.setStatus(newStatus);
         Task updated = taskRepository.save(task);
-        sendAuditLog(userId, "CHANGE_STATUS", "Task ID: " + id + " -> " + target);
-        return mapToResponse(updated);
+        sendAuditLog(userId, "CHANGE_STATUS", "Task ID: " + id + " -> " + newStatus);
+        return taskMapper.toResponse(updated);
     }
 
     public void deleteTask(Long id, Long userId) {
-        Task task = taskRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Task not found"));
-
+        Task task = taskRepository.findById(id).orElseThrow(() -> new RuntimeException("Task not found"));
         if (!task.getUserId().equals(userId)) {
             throw new RuntimeException("You don't own this task");
         }
-
-        task.getTags().clear();
-        taskRepository.save(task);
         taskRepository.delete(task);
         sendAuditLog(userId, "DELETE_TASK", "Task ID: " + id);
     }
 
     public TaskResponse addTagsToTask(Long taskId, List<Long> tagIds, Long userId) {
-        Task task = taskRepository.findById(taskId)
-                .orElseThrow(() -> new RuntimeException("Task not found"));
+        Task task = taskRepository.findById(taskId).orElseThrow(() -> new RuntimeException("Task not found"));
         if (!task.getUserId().equals(userId)) {
             throw new RuntimeException("You don't own this task");
         }
         Set<Tag> tags = resolveTags(userId, tagIds);
         task.getTags().addAll(tags);
         Task saved = taskRepository.save(task);
-        sendAuditLog(userId, "ADD_TAGS", "Task ID: " + taskId + ", tags: " + tagIds);
-        return mapToResponse(saved);
+        sendAuditLog(userId, "ADD_TAGS", "Task ID: " + taskId);
+        return taskMapper.toResponse(saved);
     }
 
     public TaskResponse removeTagFromTask(Long taskId, Long tagId, Long userId) {
-        Task task = taskRepository.findById(taskId)
-                .orElseThrow(() -> new RuntimeException("Task not found"));
+        Task task = taskRepository.findById(taskId).orElseThrow(() -> new RuntimeException("Task not found"));
         if (!task.getUserId().equals(userId)) {
             throw new RuntimeException("You don't own this task");
         }
-        tagRepository.findById(tagId)
-                .filter(t -> t.getUserId().equals(userId))
-                .orElseThrow(() -> new IllegalArgumentException("Tag not found or does not belong to user"));
-
         task.getTags().removeIf(t -> t.getId().equals(tagId));
         Task saved = taskRepository.save(task);
-        sendAuditLog(userId, "REMOVE_TAG", "Task ID: " + taskId + ", tag: " + tagId);
-        return mapToResponse(saved);
+        sendAuditLog(userId, "REMOVE_TAG", "Task ID: " + taskId);
+        return taskMapper.toResponse(saved);
     }
 
     public void deleteAllUserTasks(Long userId) {
         List<Task> tasks = taskRepository.findByUserId(userId);
-        if (!tasks.isEmpty()) {
-            for (Task t : tasks) {
-                t.getTags().clear();
-            }
-            taskRepository.saveAll(tasks);
-            taskRepository.deleteAll(tasks);
-        }
-        sendAuditLog(userId, "DELETE_ALL_TASKS", "All tasks deleted for user");
+        taskRepository.deleteAll(tasks);
+        sendAuditLog(userId, "DELETE_ALL_TASKS", "All tasks deleted");
     }
 
     private Set<Tag> resolveTags(Long userId, List<Long> tagIds) {
         if (tagIds == null || tagIds.isEmpty()) {
             return new HashSet<>();
         }
-        List<Tag> tags = tagRepository.findAllById(tagIds);
-        long distinctRequested = tagIds.stream().distinct().count();
-        if (tags.size() != distinctRequested) {
-            throw new IllegalArgumentException("Some tags not found");
-        }
-        boolean allOwned = tags.stream().allMatch(t -> t.getUserId().equals(userId));
-        if (!allOwned) {
-            throw new IllegalArgumentException("Some tags don't belong to the user");
-        }
-        return new HashSet<>(tags);
+        return new HashSet<>(tagRepository.findAllById(tagIds));
     }
 
     private void sendAuditLog(Long userId, String action, String details) {
@@ -230,34 +199,6 @@ public class TaskService {
             System.err.println("Failed to send audit log: " + e.getMessage());
         }
     }
-
-    private TaskResponse mapToResponse(Task task) {
-        String status = task.getStatus();
-        LocalDateTime dl = task.getDeadline();
-        if (status == null) {
-            status = "PLANNED";
-        }
-        String normalized = status.toUpperCase();
-        if (!normalized.equals("DONE") && !normalized.equals("CANCELED")
-                && dl != null && dl.isBefore(LocalDateTime.now())) {
-            normalized = "OVERDUE";
-        }
-        TaskResponse resp = new TaskResponse(
-                task.getId(),
-                task.getTitle(),
-                task.getDescription(),
-                task.getPriority(),
-                normalized,
-                task.getDeadline(),
-                task.getUserId()
-        );
-        List<Long> tagIds = task.getTags() == null
-                ? List.of()
-                : task.getTags().stream().map(org.example.taskservice.entity.Tag::getId).toList();
-        resp.setTagIds(tagIds);
-        return resp;
-    }
-
     private static class AuditLogRequest {
         private Long userId;
         private String action;
