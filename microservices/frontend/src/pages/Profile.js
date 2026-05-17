@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { clearAuthSession, profile } from '../services/api';
 import { useToast } from '../components/Toast';
 import { GhostButton, PageIntro, PrimaryButton, Surface } from '../components/UiKit';
@@ -20,6 +20,7 @@ async function fileToDataUrl(file) {
 
 export default function Profile() {
   const toast = useToast();
+  const avatarInputRef = useRef(null);
   const [loading, setLoading] = useState(false);
   const [me, setMe] = useState(null);
   const [form, setForm] = useState({ name: '', email: '', avatarUrl: '' });
@@ -34,9 +35,10 @@ export default function Profile() {
   const loadProfile = async () => {
     try {
       setLoading(true);
-      const r = await profile.me();
-      if (r.status >= 200 && r.status < 300) {
-        const next = r.data || {};
+      const response = await profile.me();
+
+      if (response.status >= 200 && response.status < 300) {
+        const next = response.data || {};
         setMe(next);
         setForm({
           name: next.name || '',
@@ -63,13 +65,15 @@ export default function Profile() {
     return base.substring(0, 1).toUpperCase();
   }, [form.email, form.name]);
 
-  const onSaveProfile = async (e) => {
-    e.preventDefault();
+  const onSaveProfile = async (event) => {
+    event.preventDefault();
+
     try {
       setLoading(true);
-      const r = await profile.updateMe({ name: form.name, avatarUrl: form.avatarUrl });
-      if (r.status >= 200 && r.status < 300) {
-        setMe(r.data);
+      const response = await profile.updateMe({ name: form.name, avatarUrl: form.avatarUrl });
+
+      if (response.status >= 200 && response.status < 300) {
+        setMe(response.data);
         toast.success('Профиль жаңартылды');
       } else {
         toast.error('Жаңарту мүмкін болмады');
@@ -81,13 +85,15 @@ export default function Profile() {
     }
   };
 
-  const onAvatarChange = async (e) => {
-    const file = e.target.files?.[0];
+  const onAvatarChange = async (event) => {
+    const file = event.target.files?.[0];
     if (!file) return;
+
     if (!['image/png', 'image/jpeg'].includes(file.type)) {
       toast.error('Аватар тек JPG немесе PNG болуы керек');
       return;
     }
+
     if (file.size > 2 * 1024 * 1024) {
       toast.error('Аватар өлшемі 2 MB-тан аспауы керек');
       return;
@@ -102,16 +108,26 @@ export default function Profile() {
     }
   };
 
-  const onChangePassword = async (e) => {
-    e.preventDefault();
+  const onRemoveAvatar = () => {
+    setForm((prev) => ({ ...prev, avatarUrl: '' }));
+    if (avatarInputRef.current) {
+      avatarInputRef.current.value = '';
+    }
+  };
+
+  const onChangePassword = async (event) => {
+    event.preventDefault();
+
     if (!me?.passwordChangeAvailable) {
       toast.info('Бұл аккаунт үшін пароль ауыстыру қолжетімсіз');
       return;
     }
+
     if (passwordForm.newPassword.length < 8) {
       toast.error('Жаңа пароль кемінде 8 таңба болуы керек');
       return;
     }
+
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
       toast.error('Жаңа парольдер сәйкес келмейді');
       return;
@@ -175,12 +191,12 @@ export default function Profile() {
       <PageIntro
         eyebrow="Жеке баптау"
         title="Профиль және қауіпсіздік"
-        description="Бұл жерде негізгі деректер, аватар, пароль және GDPR әрекеттері бір жүйеге жиналған."
+        description="Негізгі деректерді жаңартып, аватарды реттеп, пароль мен жеке деректерге қатысты әрекеттерді осы жерден басқарасыз."
         stats={[
           { label: 'Email', value: form.email || '—', hint: 'Негізгі кіру адресі' },
           { label: 'Рөл', value: me?.role || 'USER', hint: 'Аккаунт мәртебесі' },
           { label: 'Тіркелген', value: formatCreatedAt(me?.createdAt), hint: 'Аккаунт жасалған күн' },
-          { label: 'Пароль', value: me?.passwordChangeAvailable ? 'Жергілікті' : 'OAuth', hint: 'Қауіпсіздік түрі' },
+          { label: 'Қауіпсіздік', value: me?.passwordChangeAvailable ? 'Жергілікті' : 'OAuth', hint: 'Кіру тәсілі' },
         ]}
       />
 
@@ -188,47 +204,67 @@ export default function Profile() {
         <Surface className="overflow-hidden">
           <div className="border-b border-[var(--border-color)] px-6 py-5">
             <h2 className="text-xl font-semibold text-[var(--text-primary)]">Жеке ақпарат</h2>
-            <p className="mt-1 text-sm text-[var(--text-secondary)]">Аватарды, атты және көрінетін профиль деректерін жаңартыңыз.</p>
+            <p className="mt-1 text-sm text-[var(--text-secondary)]">
+              Көрінетін атыңызды жаңартып, профиль суретін біркелкі түрде реттеңіз.
+            </p>
           </div>
 
           <form onSubmit={onSaveProfile} className="space-y-6 p-6">
-            <div className="flex flex-col gap-4 md:flex-row md:items-center">
-              {form.avatarUrl ? (
-                <img src={form.avatarUrl} alt="avatar" className="h-20 w-20 rounded-3xl object-cover" />
-              ) : (
-                <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-[linear-gradient(135deg,#2563eb,#60a5fa)] text-3xl font-semibold text-white">
-                  {initials}
-                </div>
-              )}
-              <div className="space-y-3">
-                <div>
-                  <label className="mb-1 block text-sm font-medium text-[var(--text-secondary)]">Аватар жүктеу</label>
-                  <input type="file" accept="image/png,image/jpeg" onChange={onAvatarChange} className="block text-sm text-[var(--text-secondary)]" />
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setForm((prev) => ({ ...prev, avatarUrl: '' }))}
-                  className="text-sm font-medium text-[var(--brand-strong)]"
-                >
-                  Аватарды алып тастау
-                </button>
-              </div>
-            </div>
+            <div className="grid gap-4 lg:grid-cols-[220px_minmax(0,1fr)]">
+              <div className="rounded-2xl border border-[var(--border-color)] bg-[var(--card-strong)] p-4">
+                <div className="flex flex-col items-center text-center">
+                  {form.avatarUrl ? (
+                    <img src={form.avatarUrl} alt="avatar" className="h-24 w-24 rounded-[28px] object-cover shadow-sm" />
+                  ) : (
+                    <div className="flex h-24 w-24 items-center justify-center rounded-[28px] bg-[linear-gradient(135deg,#2563eb,#60a5fa)] text-3xl font-semibold text-white shadow-sm">
+                      {initials}
+                    </div>
+                  )}
 
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="md:col-span-2">
-                <label className="mb-1 block text-sm font-medium text-[var(--text-secondary)]">Email</label>
-                <input type="email" disabled value={form.email} className="app-input opacity-80" />
+                  <div className="mt-4 text-sm font-medium text-[var(--text-primary)]">Профиль суреті</div>
+                  <div className="mt-1 text-xs leading-5 text-[var(--text-secondary)]">JPG немесе PNG, 2 MB дейін</div>
+
+                  <input
+                    ref={avatarInputRef}
+                    type="file"
+                    accept="image/png,image/jpeg"
+                    onChange={onAvatarChange}
+                    className="hidden"
+                  />
+
+                  <div className="mt-4 flex w-full flex-col gap-2">
+                    <GhostButton type="button" className="w-full" onClick={() => avatarInputRef.current?.click()}>
+                      Сурет таңдау
+                    </GhostButton>
+                    <button
+                      type="button"
+                      onClick={onRemoveAvatar}
+                      className="rounded-xl px-3 py-2 text-sm font-medium text-[var(--brand-strong)] transition hover:bg-[var(--brand-soft)]"
+                    >
+                      Аватарды алып тастау
+                    </button>
+                  </div>
+                </div>
               </div>
-              <div className="md:col-span-2">
-                <label className="mb-1 block text-sm font-medium text-[var(--text-secondary)]">Аты</label>
-                <input
-                  type="text"
-                  value={form.name}
-                  onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
-                  className="app-input"
-                  placeholder="Сіздің атыңыз"
-                />
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="md:col-span-2">
+                  <label className="mb-1 block text-sm font-medium text-[var(--text-secondary)]">Email</label>
+                  <div className="rounded-xl border border-[var(--border-color)] bg-[var(--card-strong)] px-3.5 py-3 text-sm text-[var(--text-primary)]">
+                    <div className="break-all leading-6">{form.email || '—'}</div>
+                  </div>
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="mb-1 block text-sm font-medium text-[var(--text-secondary)]">Аты</label>
+                  <input
+                    type="text"
+                    value={form.name}
+                    onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))}
+                    className="app-input"
+                    placeholder="Сіздің атыңыз"
+                  />
+                </div>
               </div>
             </div>
 
@@ -257,7 +293,7 @@ export default function Profile() {
                 <input
                   type="password"
                   value={passwordForm.currentPassword}
-                  onChange={(e) => setPasswordForm((prev) => ({ ...prev, currentPassword: e.target.value }))}
+                  onChange={(event) => setPasswordForm((prev) => ({ ...prev, currentPassword: event.target.value }))}
                   className="app-input"
                   disabled={!me?.passwordChangeAvailable}
                 />
@@ -267,7 +303,7 @@ export default function Profile() {
                 <input
                   type="password"
                   value={passwordForm.newPassword}
-                  onChange={(e) => setPasswordForm((prev) => ({ ...prev, newPassword: e.target.value }))}
+                  onChange={(event) => setPasswordForm((prev) => ({ ...prev, newPassword: event.target.value }))}
                   className="app-input"
                   disabled={!me?.passwordChangeAvailable}
                 />
@@ -277,7 +313,7 @@ export default function Profile() {
                 <input
                   type="password"
                   value={passwordForm.confirmPassword}
-                  onChange={(e) => setPasswordForm((prev) => ({ ...prev, confirmPassword: e.target.value }))}
+                  onChange={(event) => setPasswordForm((prev) => ({ ...prev, confirmPassword: event.target.value }))}
                   className="app-input"
                   disabled={!me?.passwordChangeAvailable}
                 />
@@ -293,13 +329,17 @@ export default function Profile() {
           <Surface className="overflow-hidden">
             <div className="border-b border-[var(--border-color)] px-6 py-5">
               <h2 className="text-xl font-semibold text-[var(--text-primary)]">GDPR және аккаунт</h2>
-              <p className="mt-1 text-sm text-[var(--text-secondary)]">Деректерді экспорттау немесе аккаунтты толық жою әрекеттері.</p>
+              <p className="mt-1 text-sm text-[var(--text-secondary)]">
+                Жеке деректерді экспорттау немесе аккаунтты толық жою әрекеттері осы жерде орналасқан.
+              </p>
             </div>
 
             <div className="space-y-4 p-6">
               <div className="rounded-2xl border border-[var(--border-color)] bg-[var(--card-strong)] p-4">
                 <div className="font-medium text-[var(--text-primary)]">Деректер экспорты</div>
-                <div className="mt-1 text-sm text-[var(--text-secondary)]">JSON форматында жеке деректерді жүктеп алыңыз.</div>
+                <div className="mt-1 text-sm text-[var(--text-secondary)]">
+                  Жеке деректерді JSON форматында жүктеп алуға болады.
+                </div>
                 <div className="mt-4">
                   <GhostButton onClick={onExportData} disabled={exporting}>
                     {exporting ? 'Дайындалып жатыр...' : 'Экспортты жүктеу'}
@@ -310,7 +350,7 @@ export default function Profile() {
               <div className="rounded-2xl border border-rose-200 bg-[var(--danger-soft)] p-4">
                 <div className="font-medium text-rose-600">Аккаунтты толық жою</div>
                 <div className="mt-1 text-sm text-[var(--text-secondary)]">
-                  Бұл әрекет профильді және байланысты негізгі деректерді өшіреді.
+                  Бұл әрекет профильді және негізгі байланысты деректерді өшіреді.
                 </div>
                 <div className="mt-4">
                   <button

@@ -35,18 +35,30 @@ export function PageIntro({ eyebrow, title, description, actions, stats = [] }) 
         </div>
         {stats.length ? (
           <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            {stats.map((stat) => (
-              <div
-                key={stat.label}
-                className="rounded-2xl border border-[var(--border-color)] bg-[var(--card-strong)] px-4 py-4"
-              >
-                <div className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--muted-text)]">
-                  {stat.label}
+            {stats.map((stat) => {
+              const valueText = String(stat.value ?? '');
+              const compactValue = valueText.length > 18;
+
+              return (
+                <div
+                  key={stat.label}
+                  className="rounded-2xl border border-[var(--border-color)] bg-[var(--card-strong)] px-4 py-4"
+                >
+                  <div className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--muted-text)]">
+                    {stat.label}
+                  </div>
+                  <div
+                    className={cn(
+                      'mt-2 font-semibold leading-tight text-[var(--text-primary)]',
+                      compactValue ? 'break-all text-sm sm:text-base' : 'text-2xl'
+                    )}
+                  >
+                    {stat.value}
+                  </div>
+                  {stat.hint ? <div className="mt-1 text-xs text-[var(--text-secondary)]">{stat.hint}</div> : null}
                 </div>
-                <div className="mt-2 text-2xl font-semibold text-[var(--text-primary)]">{stat.value}</div>
-                {stat.hint ? <div className="mt-1 text-xs text-[var(--text-secondary)]">{stat.hint}</div> : null}
-              </div>
-            ))}
+              );
+            })}
           </div>
         ) : null}
       </div>
