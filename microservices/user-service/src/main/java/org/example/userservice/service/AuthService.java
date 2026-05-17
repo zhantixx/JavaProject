@@ -8,6 +8,7 @@ import org.example.userservice.entity.User;
 import org.example.userservice.repository.RefreshTokenRepository;
 import org.example.userservice.repository.UserRepository;
 import org.example.userservice.utils.JwtUtil;
+import org.example.userservice.utils.TokenHashUtil;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -61,7 +62,7 @@ public class AuthService {
 
         auditService.log(user.getId(), "REGISTER", "Email: " + user.getEmail(), clientIp);
 
-        String token = jwtUtil.generateToken(user.getEmail());
+        String token = jwtUtil.generateToken(user.getEmail(), "USER", user.getId());
         String refreshToken = jwtUtil.generateRefreshToken(user.getEmail());
 
         saveRefreshToken(user.getId(), refreshToken);
@@ -91,9 +92,7 @@ public class AuthService {
         auditService.log(user.getId(), "LOGIN", null, clientIp);
 
         UserDetails userDetails = userDetailsService.loadUserByUsername(email);
-        String token = "USER".equals(user.getRole())
-                ? jwtUtil.generateToken(userDetails.getUsername())
-                : jwtUtil.generateToken(userDetails.getUsername(), user.getRole());
+        String token = jwtUtil.generateToken(userDetails.getUsername(), user.getRole(), user.getId());
         String refreshToken = jwtUtil.generateRefreshToken(userDetails.getUsername());
 
         refreshTokenRepository.deleteByUserId(user.getId());
@@ -104,7 +103,7 @@ public class AuthService {
 
     private void saveRefreshToken(Long userId, String refreshToken) {
         RefreshToken rt = new RefreshToken();
-        rt.setToken(refreshToken);
+        rt.setToken(TokenHashUtil.sha256(refreshToken));
         rt.setUserId(userId);
         rt.setExpiresAt(Instant.now().plusMillis(jwtUtil.getRefreshExpiration()));
         refreshTokenRepository.save(rt);

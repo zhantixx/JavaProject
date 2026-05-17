@@ -6,6 +6,7 @@ import org.example.userservice.entity.User;
 import org.example.userservice.repository.RefreshTokenRepository;
 import org.example.userservice.repository.UserRepository;
 import org.example.userservice.utils.JwtUtil;
+import org.example.userservice.utils.TokenHashUtil;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -35,7 +36,7 @@ public class RefreshTokenController {
             throw new RuntimeException("Invalid refresh token");
         }
         String refreshToken = authHeader.substring(7);
-        RefreshToken stored = refreshTokenRepository.findByTokenAndRevokedFalse(refreshToken)
+        RefreshToken stored = refreshTokenRepository.findByTokenAndRevokedFalse(TokenHashUtil.sha256(refreshToken))
                 .orElseThrow(() -> new RuntimeException("Invalid refresh token"));
         if (stored.getExpiresAt().isBefore(Instant.now())) {
             throw new RuntimeException("Refresh token expired");
@@ -48,7 +49,7 @@ public class RefreshTokenController {
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         // Генерируем новый access token (refresh token оставляем тот же)
-        String newAccessToken = jwtUtil.generateToken(user.getEmail(), user.getRole());
+        String newAccessToken = jwtUtil.generateToken(user.getEmail(), user.getRole(), user.getId());
         return ResponseEntity.ok(new AuthResponse(newAccessToken, refreshToken));
     }
 }

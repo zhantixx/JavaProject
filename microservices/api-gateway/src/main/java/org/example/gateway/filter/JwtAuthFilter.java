@@ -59,12 +59,11 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
 
             // Попытка извлечь userId из claims
             Object userIdObj = claims.get("userId");
-            if (userIdObj != null) {
-                userId = String.valueOf(userIdObj);
-            } else {
-                // Если userId нет в claims, используем значение по умолчанию
-                userId = "1";
+            if (userIdObj == null || String.valueOf(userIdObj).isBlank()) {
+                exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
+                return exchange.getResponse().setComplete();
             }
+            userId = String.valueOf(userIdObj);
 
             ServerHttpRequest mutatedRequest = exchange.getRequest().mutate()
                     .header("X-User-Id", userId)
