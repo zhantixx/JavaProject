@@ -24,6 +24,10 @@ public class User {
 
     private String name;
 
+    @Lob
+    @Column(name = "avatar_url")
+    private String avatarUrl;
+
     private String role = "USER";
 
     @Column(name = "consent_given")
@@ -77,6 +81,9 @@ public class User {
 
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
+
+    public String getAvatarUrl() { return avatarUrl; }
+    public void setAvatarUrl(String avatarUrl) { this.avatarUrl = avatarUrl; }
 
     public String getRole() { return role; }
     public void setRole(String role) { this.role = role; }

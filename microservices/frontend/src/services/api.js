@@ -132,6 +132,7 @@ export const tasks = {
 export const profile = {
   me: () => api.get('/users/me'),
   updateMe: (data) => api.patch('/users/me', data),
+  changePassword: (data) => api.post('/users/me/password', data),
   exportData: () => api.get('/users/me/export', { responseType: 'blob' }),
   deleteAccount: () => api.delete('/users/me'),
 };

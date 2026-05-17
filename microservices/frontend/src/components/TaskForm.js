@@ -3,7 +3,13 @@ import { tasks } from '../services/api';
 import { useToast } from './Toast';
 import { PrimaryButton, SectionTitle, Surface } from './UiKit';
 
-function TaskForm({ onTaskCreated, defaultDate = '' }) {
+function TaskForm({
+  onTaskCreated,
+  defaultDate = '',
+  title = 'Жаңа тапсырма',
+  description = 'Аяқталу уақыты анық тапсырмаларды бөлек жоспарлаңыз.',
+  submitLabel = 'Тапсырманы сақтау',
+}) {
   const toast = useToast();
   const [form, setForm] = useState({
     title: '',
@@ -23,6 +29,10 @@ function TaskForm({ onTaskCreated, defaultDate = '' }) {
     e.preventDefault();
     if (!form.title.trim()) {
       toast.error('Тапсырма атауын жазыңыз');
+      return;
+    }
+    if (!form.deadline) {
+      toast.error('Орындау мерзімін көрсетіңіз');
       return;
     }
     setSaving(true);
@@ -47,10 +57,7 @@ function TaskForm({ onTaskCreated, defaultDate = '' }) {
 
   return (
     <Surface className="overflow-hidden">
-      <SectionTitle
-        title="Жаңа тапсырма"
-        description="Атауы, күйі және мерзімі бар ықшам жазба жасаңыз."
-      />
+      <SectionTitle title={title} description={description} />
 
       <form onSubmit={handleSubmit} className="grid gap-4 p-5 md:grid-cols-6">
         <div className="md:col-span-3">
@@ -59,7 +66,7 @@ function TaskForm({ onTaskCreated, defaultDate = '' }) {
             name="title"
             value={form.title}
             onChange={onChange}
-            placeholder="Мысалы: апталық есепті аяқтау"
+            placeholder="Мысалы: клиентке есеп жіберу"
             className="app-input"
             required
           />
@@ -78,31 +85,31 @@ function TaskForm({ onTaskCreated, defaultDate = '' }) {
           <label className="mb-1 block text-sm font-medium text-[var(--text-secondary)]">Күйі</label>
           <select name="status" value={form.status} onChange={onChange} className="app-input">
             <option value="PLANNED">Жоспар</option>
-            <option value="IN_PROGRESS">Орындалуда</option>
             <option value="DONE">Дайын</option>
+            <option value="CANCELED">Тоқтатылды</option>
           </select>
         </div>
 
         <div>
-          <label className="mb-1 block text-sm font-medium text-[var(--text-secondary)]">Мерзімі</label>
+          <label className="mb-1 block text-sm font-medium text-[var(--text-secondary)]">Орындау уақыты</label>
           <input type="datetime-local" name="deadline" value={form.deadline} onChange={onChange} className="app-input" />
         </div>
 
-        <div className="md:col-span-5">
+        <div className="md:col-span-6">
           <label className="mb-1 block text-sm font-medium text-[var(--text-secondary)]">Сипаттама</label>
           <textarea
             name="description"
             value={form.description}
             onChange={onChange}
-            placeholder="Тапсырманың қысқа мазмұны"
-            rows={4}
-            className="app-input min-h-[120px] resize-none"
+            placeholder="Не істеу керек және нәтижесі қандай болуы тиіс"
+            rows={5}
+            className="app-input min-h-[140px] resize-none"
           />
         </div>
 
-        <div className="flex items-end justify-end md:col-span-1">
-          <PrimaryButton type="submit" disabled={saving} className="w-full md:w-auto">
-            {saving ? 'Сақталып жатыр...' : 'Қосу'}
+        <div className="md:col-span-6 flex justify-end">
+          <PrimaryButton type="submit" disabled={saving}>
+            {saving ? 'Сақталып жатыр...' : submitLabel}
           </PrimaryButton>
         </div>
       </form>

@@ -1,12 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import TaskForm from './TaskForm';
+import { Link } from 'react-router-dom';
 import { tasks } from '../services/api';
 import { useToast } from './Toast';
-import { GhostButton, PageIntro, SectionTitle, Surface } from './UiKit';
+import { GhostButton, PageIntro, PrimaryButton, SectionTitle, Surface } from './UiKit';
 
 const STATUS_LABELS = {
   PLANNED: 'Жоспар',
-  IN_PROGRESS: 'Орындалуда',
   DONE: 'Дайын',
   CANCELED: 'Тоқтатылды',
 };
@@ -16,6 +15,31 @@ const PRIORITY_LABELS = {
   MEDIUM: 'Орташа',
   LOW: 'Төмен',
 };
+
+function formatDeadline(deadline) {
+  return new Date(deadline).toLocaleString('kk-KZ', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function formatRemaining(deadline) {
+  const diffMs = new Date(deadline).getTime() - Date.now();
+  if (Number.isNaN(diffMs)) return 'Мерзім белгісіз';
+  if (diffMs <= 0) return 'Мерзімі өтіп кетті';
+
+  const totalMinutes = Math.floor(diffMs / 60000);
+  const days = Math.floor(totalMinutes / 1440);
+  const hours = Math.floor((totalMinutes % 1440) / 60);
+  const minutes = totalMinutes % 60;
+
+  if (days > 0) return `${days} күн ${hours} сағ қалды`;
+  if (hours > 0) return `${hours} сағ ${minutes} мин қалды`;
+  return `${minutes} мин қалды`;
+}
 
 function TaskList() {
   const toast = useToast();
@@ -43,36 +67,32 @@ function TaskList() {
 
   const visibleTasks = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return taskList.filter((task) => {
-      const matchesQuery =
-        !q || (task.title || '').toLowerCase().includes(q) || (task.description || '').toLowerCase().includes(q);
-      const matchesStatus = !status || (task.status || '').toUpperCase() === status;
-      return matchesQuery && matchesStatus;
-    });
+    return [...taskList]
+      .filter((task) => {
+        const matchesQuery =
+          !q || (task.title || '').toLowerCase().includes(q) || (task.description || '').toLowerCase().includes(q);
+        const matchesStatus = !status || (task.status || '').toUpperCase() === status;
+        return matchesQuery && matchesStatus;
+      })
+      .sort((a, b) => {
+        if (!a.deadline) return 1;
+        if (!b.deadline) return -1;
+        return new Date(a.deadline) - new Date(b.deadline);
+      });
   }, [taskList, query, status]);
 
   const stats = useMemo(() => {
-    const done = taskList.filter((task) => task.status === 'DONE').length;
     const planned = taskList.filter((task) => task.status === 'PLANNED').length;
-    const high = taskList.filter((task) => task.priority === 'HIGH').length;
-    const dueToday = taskList.filter((task) => {
-      if (!task.deadline) return false;
-      const current = new Date();
-      const deadline = new Date(task.deadline);
-      return deadline.toDateString() === current.toDateString();
-    }).length;
+    const withDeadline = taskList.filter((task) => Boolean(task.deadline)).length;
+    const overdue = taskList.filter((task) => task.deadline && new Date(task.deadline) < new Date() && task.status !== 'DONE').length;
 
     return [
       { label: 'Барлығы', value: taskList.length, hint: 'Жалпы тапсырма саны' },
-      { label: 'Дайын', value: done, hint: 'Аяқталғандар' },
-      { label: 'Жоспарда', value: planned, hint: 'Алдағы орындаулар' },
-      { label: 'Бүгін', value: dueToday + high, hint: 'Жоғары басымдық пен бүгінгі мерзім' },
+      { label: 'Жоспарда', value: planned, hint: 'Әлі аяқталмағандар' },
+      { label: 'Мерзімі бар', value: withDeadline, hint: 'Уақыты көрсетілгендер' },
+      { label: 'Кешіккен', value: overdue, hint: 'Назар сұрайтындар' },
     ];
   }, [taskList]);
-
-  const handleCreated = (task) => {
-    setTaskList((prev) => [task, ...prev]);
-  };
 
   const handleDelete = async (id) => {
     try {
@@ -103,13 +123,16 @@ function TaskList() {
   return (
     <div className="space-y-6">
       <PageIntro
-        eyebrow="Жеке жоспар"
-        title="Күндік ағынды басқару"
-        description="Маңызды істерді бөліп алып, орындалу күйін бір беттен бақылаңыз. Фокус тек қажет нәрсеге түседі."
+        eyebrow="Бақылау тақтасы"
+        title="Тапсырмалар"
+        description="Тізім тек орындауға арналған болсын: не істеу керек, қашан бітуі тиіс және қайсысы кешігіп тұр — бәрі бір жерде."
         stats={stats}
+        actions={
+          <Link to="/tasks/new">
+            <PrimaryButton>Жаңа тапсырма</PrimaryButton>
+          </Link>
+        }
       />
-
-      <TaskForm onTaskCreated={handleCreated} />
 
       <Surface className="overflow-hidden">
         <SectionTitle
@@ -120,14 +143,14 @@ function TaskList() {
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Іздеу"
-                className="app-input min-w-[180px]"
+                placeholder="Тапсырма іздеу"
+                className="app-input min-w-[200px]"
               />
-              <select value={status} onChange={(e) => setStatus(e.target.value)} className="app-input min-w-[170px]">
+              <select value={status} onChange={(e) => setStatus(e.target.value)} className="app-input min-w-[180px]">
                 <option value="">Барлық күйлер</option>
                 <option value="PLANNED">Жоспар</option>
-                <option value="IN_PROGRESS">Орындалуда</option>
                 <option value="DONE">Дайын</option>
+                <option value="CANCELED">Тоқтатылды</option>
               </select>
             </div>
           }
@@ -136,14 +159,11 @@ function TaskList() {
         {loading ? (
           <div className="p-5 text-sm text-[var(--text-secondary)]">Жүктеліп жатыр...</div>
         ) : visibleTasks.length === 0 ? (
-          <div className="p-10 text-center text-[var(--text-secondary)]">Әзірге бұл сүзгіге сай тапсырма жоқ</div>
+          <div className="p-10 text-center text-[var(--text-secondary)]">Сәйкес тапсырма табылмады</div>
         ) : (
           <div className="grid gap-4 p-5 xl:grid-cols-2">
             {visibleTasks.map((task) => (
-              <article
-                key={task.id}
-                className="rounded-2xl border border-[var(--border-color)] bg-[var(--card-strong)] p-5"
-              >
+              <article key={task.id} className="rounded-2xl border border-[var(--border-color)] bg-[var(--card-strong)] p-5">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
@@ -161,21 +181,31 @@ function TaskList() {
                   <span className="app-badge">{STATUS_LABELS[task.status] || STATUS_LABELS.PLANNED}</span>
                 </div>
 
-                <div className="mt-4 flex flex-wrap items-center gap-3 text-sm text-[var(--text-secondary)]">
-                  <span className="app-badge">ID #{task.id}</span>
-                  {task.deadline ? (
-                    <span className="app-badge">
-                      Мерзімі: {new Date(task.deadline).toLocaleString('kk-KZ')}
-                    </span>
-                  ) : (
-                    <span className="app-badge">Мерзімі көрсетілмеген</span>
-                  )}
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  <div className="rounded-2xl border border-[var(--border-color)] bg-[var(--panel-bg)] p-3">
+                    <div className="text-xs uppercase tracking-[0.12em] text-[var(--muted-text)]">Орындау уақыты</div>
+                    <div className="mt-2 text-sm font-medium text-[var(--text-primary)]">
+                      {task.deadline ? formatDeadline(task.deadline) : 'Көрсетілмеген'}
+                    </div>
+                  </div>
+                  <div className="rounded-2xl border border-[var(--border-color)] bg-[var(--panel-bg)] p-3">
+                    <div className="text-xs uppercase tracking-[0.12em] text-[var(--muted-text)]">Қалған уақыт</div>
+                    <div className="mt-2 text-sm font-medium text-[var(--text-primary)]">
+                      {task.deadline ? formatRemaining(task.deadline) : 'Шектеу жоқ'}
+                    </div>
+                  </div>
                 </div>
 
                 <div className="mt-5 flex flex-wrap gap-2">
                   <GhostButton onClick={() => handleStatus(task.id, task.status === 'DONE' ? 'PLANNED' : 'DONE')}>
-                    {task.status === 'DONE' ? 'Қайтару' : 'Дайын деп белгілеу'}
+                    {task.status === 'DONE' ? 'Қайта ашу' : 'Дайын деп белгілеу'}
                   </GhostButton>
+                  <button
+                    onClick={() => handleStatus(task.id, 'CANCELED')}
+                    className="rounded-xl border border-amber-200 bg-[var(--warning-soft)] px-4 py-2.5 text-sm font-medium text-amber-700 transition hover:border-amber-300"
+                  >
+                    Тоқтату
+                  </button>
                   <button
                     onClick={() => handleDelete(task.id)}
                     className="rounded-xl border border-rose-200 bg-[var(--danger-soft)] px-4 py-2.5 text-sm font-medium text-rose-500 transition hover:border-rose-300"

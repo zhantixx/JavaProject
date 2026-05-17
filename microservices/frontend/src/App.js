@@ -8,10 +8,12 @@ import OAuth2Redirect from './components/OAuth2Redirect';
 import Profile from './pages/Profile';
 import CalendarPage from './pages/Calendar';
 import NotesPage from './pages/Notes';
+import DashboardPage from './pages/Dashboard';
+import TaskCreatePage from './pages/TaskCreate';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { ToastProvider, useToast } from './components/Toast';
 import { clearAuthSession } from './services/api';
-import { GhostButton } from './components/UiKit';
+import { GhostButton, PrimaryButton, Surface } from './components/UiKit';
 
 const SITE_NAME = 'SanaBot';
 
@@ -77,6 +79,7 @@ function AppShell() {
 
   const navItems = useMemo(
     () => [
+      { to: '/home', label: 'Басты бет' },
       { to: '/tasks', label: 'Тапсырмалар' },
       { to: '/calendar', label: 'Күнтізбе' },
       { to: '/notes', label: 'Жазбалар' },
@@ -91,20 +94,20 @@ function AppShell() {
       <header className="sticky top-0 z-30 border-b border-[var(--border-color)] bg-[rgba(248,251,255,0.72)] backdrop-blur dark:bg-[rgba(8,17,32,0.72)]">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 md:px-6">
           <div className="flex min-w-0 items-center gap-4">
-            <Link to={token ? '/tasks' : '/login'} className="flex items-center gap-3">
+            <Link to={token ? '/home' : '/login'} className="flex items-center gap-3">
               <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#2563eb,#60a5fa)] text-base font-semibold text-white shadow-[0_12px_24px_rgba(37,99,235,0.28)]">
-                K
+                S
               </div>
-              <div>
-                <div className="text-lg font-semibold text-[var(--text-primary)]">{SITE_NAME}</div>
+              <div className="min-w-0">
+                <div className="truncate text-lg font-semibold text-[var(--text-primary)]">{SITE_NAME}</div>
                 <div className="text-xs text-[var(--text-secondary)]">Жеке ассистент</div>
               </div>
             </Link>
           </div>
 
-          <div className="flex min-w-0 items-center gap-2">
-            {token ? (
-              <nav className="hidden min-w-0 items-center gap-2 md:flex">
+          {token ? (
+            <Surface className="hidden flex-1 overflow-hidden md:block">
+              <nav className="flex items-center justify-center gap-1 p-2">
                 {navItems.map((item) => {
                   const isActive = location.pathname === item.to || location.pathname.startsWith(`${item.to}/`);
                   return (
@@ -114,7 +117,7 @@ function AppShell() {
                       className={`whitespace-nowrap rounded-xl px-4 py-2 text-sm font-medium transition ${
                         isActive
                           ? 'bg-[var(--brand-strong)] text-white shadow-[0_14px_26px_rgba(37,99,235,0.22)]'
-                          : 'bg-[var(--card-strong)] text-[var(--text-secondary)] hover:text-[var(--brand-strong)]'
+                          : 'text-[var(--text-secondary)] hover:bg-[var(--brand-soft)] hover:text-[var(--brand-strong)]'
                       }`}
                     >
                       {item.label}
@@ -122,16 +125,22 @@ function AppShell() {
                   );
                 })}
               </nav>
+            </Surface>
+          ) : (
+            <div className="flex-1" />
+          )}
+
+          <div className="flex shrink-0 items-center gap-2">
+            {token ? (
+              <Link to="/tasks/new" className="hidden md:block">
+                <PrimaryButton>+ Тапсырма</PrimaryButton>
+              </Link>
             ) : null}
-            <div className="flex items-center gap-2 shrink-0">
-              <ThemeToggle
-                theme={theme}
-                onToggle={() => setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'))}
-              />
-              {token ? <GhostButton onClick={logout}>Шығу</GhostButton> : null}
-            </div>
+            <ThemeToggle theme={theme} onToggle={() => setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'))} />
+            {token ? <GhostButton onClick={logout}>Шығу</GhostButton> : null}
           </div>
         </div>
+
         {token ? (
           <div className="border-t border-[var(--border-color)] px-4 py-3 md:hidden">
             <nav className="flex overflow-x-auto gap-2 pb-1">
@@ -151,6 +160,9 @@ function AppShell() {
                   </NavLink>
                 );
               })}
+              <Link to="/tasks/new" className="shrink-0">
+                <PrimaryButton>+ Тапсырма</PrimaryButton>
+              </Link>
             </nav>
           </div>
         ) : null}
@@ -158,16 +170,18 @@ function AppShell() {
 
       <main className="mx-auto max-w-7xl px-4 py-6 md:px-6 md:py-8">
         <Routes>
-          <Route path="/" element={<Navigate to={token ? '/tasks' : '/login'} replace />} />
-          <Route path="/login" element={token ? <Navigate to="/tasks" replace /> : <Login siteName={SITE_NAME} />} />
-          <Route path="/register" element={token ? <Navigate to="/tasks" replace /> : <Register siteName={SITE_NAME} />} />
+          <Route path="/" element={<Navigate to={token ? '/home' : '/login'} replace />} />
+          <Route path="/home" element={token ? <DashboardPage /> : <Navigate to="/login" replace />} />
+          <Route path="/login" element={token ? <Navigate to="/home" replace /> : <Login siteName={SITE_NAME} />} />
+          <Route path="/register" element={token ? <Navigate to="/home" replace /> : <Register siteName={SITE_NAME} />} />
           <Route path="/oauth2/redirect" element={<OAuth2Redirect />} />
           <Route path="/tasks" element={token ? <TasksPage /> : <Navigate to="/login" replace />} />
+          <Route path="/tasks/new" element={token ? <TaskCreatePage /> : <Navigate to="/login" replace />} />
           <Route path="/calendar" element={token ? <CalendarPage /> : <Navigate to="/login" replace />} />
           <Route path="/notes" element={token ? <NotesPage /> : <Navigate to="/login" replace />} />
           <Route path="/chat" element={token ? <ChatPage /> : <Navigate to="/login" replace />} />
           <Route path="/profile" element={token ? <Profile /> : <Navigate to="/login" replace />} />
-          <Route path="*" element={<Navigate to={token ? '/tasks' : '/login'} replace />} />
+          <Route path="*" element={<Navigate to={token ? '/home' : '/login'} replace />} />
         </Routes>
       </main>
     </div>

@@ -41,7 +41,13 @@ public class GdprExportService {
 
         List<TaskExportDto> tasks = fetchUserTasks(userId);
 
-        UserExportDto userDto = new UserExportDto(user.getId(), user.getEmail(), user.getName());
+        UserExportDto userDto = new UserExportDto(
+                user.getId(),
+                user.getEmail(),
+                user.getName(),
+                user.getAvatarUrl(),
+                user.getCreatedAt() == null ? null : user.getCreatedAt().toString()
+        );
         UserWithTasksExportDto exportDto = new UserWithTasksExportDto(userDto, tasks);
 
         return objectMapper.writeValueAsBytes(exportDto);
