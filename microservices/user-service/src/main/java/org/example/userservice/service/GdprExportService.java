@@ -9,6 +9,8 @@ import org.example.userservice.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -46,10 +48,13 @@ public class GdprExportService {
     }
 
     private List<TaskExportDto> fetchUserTasks(Long userId) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("X-User-Id", String.valueOf(userId));
+
         ResponseEntity<List<TaskExportDto>> response = restTemplate.exchange(
-                taskServiceUrl + "/api/tasks?userId=" + userId,
+                taskServiceUrl + "/api/tasks",
                 HttpMethod.GET,
-                null,
+                new HttpEntity<>(headers),
                 new ParameterizedTypeReference<List<TaskExportDto>>() {}
         );
         return response.getBody();

@@ -210,7 +210,7 @@ services:
       - SPRING_CLOUD_GATEWAY_GLOBALCORS_CORS-CONFIGURATIONS_[/**]_ALLOWCREDENTIALS=true
       - SPRING_CLOUD_GATEWAY_ROUTES[0].id=user-service
       - SPRING_CLOUD_GATEWAY_ROUTES[0].uri=http://user-service:8081
-      - SPRING_CLOUD_GATEWAY_ROUTES[0].predicates[0]=Path=/api/auth/**,/api/users/**,/api/calendar/**,/oauth2/**,/login/**
+      - SPRING_CLOUD_GATEWAY_ROUTES[0].predicates[0]=Path=/api/auth/**,/api/users/**,/api/admin/**,/api/audit/**,/api/calendar/**,/oauth2/**,/login/**
       - SPRING_CLOUD_GATEWAY_ROUTES[1].id=task-service
       - SPRING_CLOUD_GATEWAY_ROUTES[1].uri=http://task-service:8082
       - SPRING_CLOUD_GATEWAY_ROUTES[1].predicates[0]=Path=/api/tasks/**,/api/tags/**,/api/calendar/ics
