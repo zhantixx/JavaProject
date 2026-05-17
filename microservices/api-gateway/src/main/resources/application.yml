@@ -35,23 +35,23 @@ spring:
             allowCredentials: true
       routes:
         - id: user-service
-          uri: http://user-service:8081
+          uri: ${USER_SERVICE_URL:http://localhost:8081}
           predicates:
             - Path=/api/auth/**,/api/users/**,/api/admin/**,/api/audit/**,/api/calendar/**,/oauth2/**,/login/**
         - id: task-service
-          uri: http://task-service:8082
+          uri: ${TASK_SERVICE_URL:http://localhost:8082}
           predicates:
             - Path=/api/tasks/**,/api/tags/**,/api/calendar/ics
         - id: ai-service
-          uri: http://ai-service:8083
+          uri: ${AI_SERVICE_URL:http://localhost:8083}
           predicates:
             - Path=/api/chat/**, /api/ai/**
         - id: notification-service
-          uri: http://notification-service:8084
+          uri: ${NOTIFICATION_SERVICE_URL:http://localhost:8084}
           predicates:
             - Path=/api/notifications/**
         - id: analytics-service
-          uri: http://analytics-service:8085
+          uri: ${ANALYTICS_SERVICE_URL:http://localhost:8085}
           predicates:
             - Path=/api/analytics/**
 

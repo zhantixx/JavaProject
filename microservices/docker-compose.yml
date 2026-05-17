@@ -214,18 +214,23 @@ services:
       - SPRING_CLOUD_GATEWAY_GLOBALCORS_CORS-CONFIGURATIONS_[/**]_ALLOWEDHEADERS=*
       - SPRING_CLOUD_GATEWAY_GLOBALCORS_CORS-CONFIGURATIONS_[/**]_ALLOWCREDENTIALS=true
       - SPRING_CLOUD_GATEWAY_ROUTES[0].id=user-service
+      - USER_SERVICE_URL=http://user-service:8081
       - SPRING_CLOUD_GATEWAY_ROUTES[0].uri=http://user-service:8081
       - SPRING_CLOUD_GATEWAY_ROUTES[0].predicates[0]=Path=/api/auth/**,/api/users/**,/api/admin/**,/api/audit/**,/api/calendar/**,/oauth2/**,/login/**
       - SPRING_CLOUD_GATEWAY_ROUTES[1].id=task-service
+      - TASK_SERVICE_URL=http://task-service:8082
       - SPRING_CLOUD_GATEWAY_ROUTES[1].uri=http://task-service:8082
       - SPRING_CLOUD_GATEWAY_ROUTES[1].predicates[0]=Path=/api/tasks/**,/api/tags/**,/api/calendar/ics
       - SPRING_CLOUD_GATEWAY_ROUTES[2].id=ai-service
+      - AI_SERVICE_URL=http://ai-service:8083
       - SPRING_CLOUD_GATEWAY_ROUTES[2].uri=http://ai-service:8083
       - SPRING_CLOUD_GATEWAY_ROUTES[2].predicates[0]=Path=/api/chat/**,/api/ai/**
       - SPRING_CLOUD_GATEWAY_ROUTES[3].id=notification-service
+      - NOTIFICATION_SERVICE_URL=http://notification-service:8084
       - SPRING_CLOUD_GATEWAY_ROUTES[3].uri=http://notification-service:8084
       - SPRING_CLOUD_GATEWAY_ROUTES[3].predicates[0]=Path=/api/notifications/**
       - SPRING_CLOUD_GATEWAY_ROUTES[4].id=analytics-service
+      - ANALYTICS_SERVICE_URL=http://analytics-service:8085
       - SPRING_CLOUD_GATEWAY_ROUTES[4].uri=http://analytics-service:8085
       - SPRING_CLOUD_GATEWAY_ROUTES[4].predicates[0]=Path=/api/analytics/**
     ports:
