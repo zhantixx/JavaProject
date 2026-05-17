@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { tasks } from '../services/api';
+import { chat, tasks } from '../services/api';
 import { useToast } from './Toast';
-import { PrimaryButton, SectionTitle, Surface } from './UiKit';
+import { GhostButton, PrimaryButton, SectionTitle, Surface } from './UiKit';
 
 function TaskForm({
   onTaskCreated,
@@ -19,6 +19,8 @@ function TaskForm({
     deadline: defaultDate,
   });
   const [saving, setSaving] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiSuggestion, setAiSuggestion] = useState('');
 
   const onChange = (e) => {
     const { name, value } = e.target;
@@ -53,6 +55,52 @@ function TaskForm({
     } finally {
       setSaving(false);
     }
+  };
+
+  const requestAiPlan = async () => {
+    if (!form.title.trim()) {
+      toast.error('Алдымен тапсырма атауын жазыңыз');
+      return;
+    }
+
+    setAiLoading(true);
+    try {
+      const prompt = [
+        'Сен жеке ассистентсің.',
+        'Пайдаланушының күрделі тапсырмасын шағын жоспарға бөл.',
+        'Жауап тек қазақ тілінде болсын.',
+        'Құрылым:',
+        '1) Қысқа түсінік',
+        '2) 3-7 нақты қадам',
+        '3) Ұсынылған орындау реті',
+        '4) Ықтимал тәуекелдер',
+        '5) Пайдаланушыға қысқа кеңес',
+        '',
+        `Тапсырма атауы: ${form.title}`,
+        `Сипаттама: ${form.description || 'Жоқ'}`,
+        `Басымдық: ${form.priority}`,
+        `Мерзімі: ${form.deadline || 'Көрсетілмеген'}`,
+      ].join('\n');
+
+      const res = await chat.send(prompt);
+      setAiSuggestion(res.data.reply || '');
+      toast.success('AI жоспар дайындады');
+    } catch (err) {
+      toast.error('AI кеңесін алу мүмкін болмады');
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const applyAiSuggestion = () => {
+    if (!aiSuggestion) return;
+    setForm((prev) => ({
+      ...prev,
+      description: prev.description
+        ? `${prev.description.trim()}\n\nAI жоспары:\n${aiSuggestion}`
+        : `AI жоспары:\n${aiSuggestion}`,
+    }));
+    toast.success('AI ұсынысы сипаттамаға енгізілді');
   };
 
   return (
@@ -105,6 +153,29 @@ function TaskForm({
             rows={5}
             className="app-input min-h-[140px] resize-none"
           />
+        </div>
+
+        <div className="md:col-span-6 rounded-2xl border border-[var(--border-color)] bg-[var(--card-strong)] p-4">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <div className="font-medium text-[var(--text-primary)]">AI көмек</div>
+              <div className="mt-1 text-sm text-[var(--text-secondary)]">
+                Егер тапсырма күрделі болса, ассистент оны қадамдарға бөліп, кеңес береді.
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <GhostButton type="button" onClick={requestAiPlan} disabled={aiLoading}>
+                {aiLoading ? 'Талдап жатыр...' : 'AI жоспар сұрау'}
+              </GhostButton>
+              <GhostButton type="button" onClick={applyAiSuggestion} disabled={!aiSuggestion}>
+                Ұсынысты енгізу
+              </GhostButton>
+            </div>
+          </div>
+
+          <div className="mt-4 rounded-2xl bg-[var(--panel-bg)] p-4 text-sm leading-7 text-[var(--text-secondary)] whitespace-pre-line">
+            {aiSuggestion || 'Мұнда AI ұсынған қадамдық жоспар мен кеңес көрінеді.'}
+          </div>
         </div>
 
         <div className="md:col-span-6 flex justify-end">

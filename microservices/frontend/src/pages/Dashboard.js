@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { notes, profile, tasks } from '../services/api';
 import { useToast } from '../components/Toast';
 import { GhostButton, PageIntro, PrimaryButton, Surface } from '../components/UiKit';
+import { buildPlanSummary, buildProductivityTrackers, getMonthBounds, getWeekBounds, getYearBounds } from '../utils/planning';
 
 function formatDeadline(deadline) {
   return new Date(deadline).toLocaleString('kk-KZ', {
@@ -52,6 +53,23 @@ export default function DashboardPage() {
         .slice(0, 5),
     [taskItems]
   );
+
+  const weeklyPlan = useMemo(() => {
+    const { start, end } = getWeekBounds(new Date());
+    return buildPlanSummary(taskItems, start, end);
+  }, [taskItems]);
+
+  const monthlyPlan = useMemo(() => {
+    const { start, end } = getMonthBounds(new Date());
+    return buildPlanSummary(taskItems, start, end);
+  }, [taskItems]);
+
+  const yearlyPlan = useMemo(() => {
+    const { start, end } = getYearBounds(new Date());
+    return buildPlanSummary(taskItems, start, end);
+  }, [taskItems]);
+
+  const trackers = useMemo(() => buildProductivityTrackers(taskItems), [taskItems]);
 
   const stats = useMemo(() => {
     const todayCount = taskItems.filter((task) => {
@@ -121,6 +139,65 @@ export default function DashboardPage() {
         </Surface>
 
         <div className="space-y-6">
+          <Surface className="overflow-hidden">
+            <div className="border-b border-[var(--border-color)] px-5 py-5">
+              <h2 className="text-lg font-semibold text-[var(--text-primary)]">Жоспар көкжиегі</h2>
+              <p className="mt-1 text-sm text-[var(--text-secondary)]">Апта, ай және жыл бойынша жүктемені бірден көру.</p>
+            </div>
+            <div className="grid gap-3 p-5">
+              {[
+                ['Апта', weeklyPlan, 'Осы 7 күн ішіндегі фокус'],
+                ['Ай', monthlyPlan, 'Осы айдағы негізгі міндеттер'],
+                ['Жыл', yearlyPlan, 'Ұзақ мерзімді қозғалыс'],
+              ].map(([label, plan, hint]) => (
+                <div key={label} className="rounded-2xl border border-[var(--border-color)] bg-[var(--card-strong)] p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <div className="font-medium text-[var(--text-primary)]">{label} жоспары</div>
+                      <div className="mt-1 text-sm text-[var(--text-secondary)]">{hint}</div>
+                    </div>
+                    <span className="app-badge">{plan.completionRate}% орындалды</span>
+                  </div>
+                  <div className="mt-4 grid grid-cols-3 gap-2 text-sm">
+                    <div className="rounded-xl bg-[var(--panel-bg)] px-3 py-2">
+                      <div className="text-[var(--muted-text)]">Барлығы</div>
+                      <div className="mt-1 font-semibold text-[var(--text-primary)]">{plan.total}</div>
+                    </div>
+                    <div className="rounded-xl bg-[var(--panel-bg)] px-3 py-2">
+                      <div className="text-[var(--muted-text)]">Ашық</div>
+                      <div className="mt-1 font-semibold text-[var(--text-primary)]">{plan.open}</div>
+                    </div>
+                    <div className="rounded-xl bg-[var(--panel-bg)] px-3 py-2">
+                      <div className="text-[var(--muted-text)]">Жоғары</div>
+                      <div className="mt-1 font-semibold text-[var(--text-primary)]">{plan.high}</div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Surface>
+
+          <Surface className="overflow-hidden">
+            <div className="border-b border-[var(--border-color)] px-5 py-5">
+              <h2 className="text-lg font-semibold text-[var(--text-primary)]">Өнімділік трекерлері</h2>
+              <p className="mt-1 text-sm text-[var(--text-secondary)]">Жұмыс ырғағының денсаулығын қарапайым индикаторлармен бақылау.</p>
+            </div>
+            <div className="grid gap-3 p-5 sm:grid-cols-2">
+              {[
+                ['Аяқтау қарқыны', `${trackers.completionRate}%`, 'Жалпы тапсырмалардың қаншасы біткенін көрсетеді'],
+                ['Жоспар толықтығы', `${trackers.planningCoverage}%`, 'Мерзімі нақты көрсетілген тапсырмалар үлесі'],
+                ['Сенімділік индексі', `${trackers.reliabilityScore}%`, 'Кешіккен тапсырмалар аз болса, индекс жоғары болады'],
+                ['Фокус жүктемесі', String(trackers.focusLoad), 'Белсенді жоғары басымдықтағы тапсырмалар саны'],
+              ].map(([title, value, hint]) => (
+                <div key={title} className="rounded-2xl border border-[var(--border-color)] bg-[var(--card-strong)] p-4">
+                  <div className="text-sm font-medium text-[var(--text-primary)]">{title}</div>
+                  <div className="mt-2 text-3xl font-semibold text-[var(--brand-strong)]">{value}</div>
+                  <div className="mt-2 text-sm text-[var(--text-secondary)]">{hint}</div>
+                </div>
+              ))}
+            </div>
+          </Surface>
+
           <Surface className="overflow-hidden">
             <div className="border-b border-[var(--border-color)] px-5 py-5">
               <h2 className="text-lg font-semibold text-[var(--text-primary)]">Жылдам әрекеттер</h2>
