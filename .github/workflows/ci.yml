@@ -97,3 +97,40 @@ jobs:
 
       - name: Build service images
         run: docker compose build
+
+  performance:
+    name: k6 performance smoke
+    runs-on: ubuntu-latest
+    needs:
+      - docker
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up k6
+        uses: grafana/setup-k6-action@v1
+
+      - name: Validate k6 scenario
+        run: k6 inspect performance/k6/task-api-smoke.js
+
+  deploy-dev:
+    name: Deploy to development
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/dev'
+    needs:
+      - performance
+    steps:
+      - name: Development deploy placeholder
+        run: echo "Development deployment is ready to connect to the target environment."
+
+  deploy-prod:
+    name: Deploy to production
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    needs:
+      - performance
+    environment:
+      name: production
+    steps:
+      - name: Production deploy placeholder
+        run: echo "Production deployment requires GitHub Environment approval."
