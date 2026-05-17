@@ -8,6 +8,7 @@ volumes:
   postgres_notification_data:
   postgres_analytics_data:
   redis_data:
+  grafana_data:
 
 services:
   postgres-user:
@@ -220,5 +221,37 @@ services:
       - SPRING_CLOUD_GATEWAY_ROUTES[4].predicates[0]=Path=/api/analytics/**
     ports:
       - "8080:8080"
+    networks:
+      - assistant-net
+
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    container_name: prometheus
+    depends_on:
+      - api-gateway
+      - user-service
+      - task-service
+      - ai-service
+      - notification-service
+      - analytics-service
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    networks:
+      - assistant-net
+
+  grafana:
+    image: grafana/grafana:11.2.0
+    container_name: grafana
+    depends_on:
+      - prometheus
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    ports:
+      - "3001:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
     networks:
       - assistant-net
