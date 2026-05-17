@@ -1,6 +1,8 @@
 package org.example.userservice.entity;
 
 import jakarta.persistence.*;
+import org.example.userservice.utils.EmailHashUtil;
+
 import java.time.LocalDateTime;
 
 @Entity
@@ -13,6 +15,9 @@ public class User {
 
     @Column(unique = true, nullable = false)
     private String email;
+
+    @Column(name = "email_hash", unique = true, length = 64)
+    private String emailHash;
 
     @Column(nullable = false)
     private String password;
@@ -33,6 +38,16 @@ public class User {
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
+        syncEmailHash();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        syncEmailHash();
+    }
+
+    private void syncEmailHash() {
+        emailHash = EmailHashUtil.sha256(email);
     }
 
     public User() {}
@@ -49,7 +64,13 @@ public class User {
     public void setId(Long id) { this.id = id; }
 
     public String getEmail() { return email; }
-    public void setEmail(String email) { this.email = email; }
+    public void setEmail(String email) {
+        this.email = EmailHashUtil.normalize(email);
+        this.emailHash = EmailHashUtil.sha256(this.email);
+    }
+
+    public String getEmailHash() { return emailHash; }
+    public void setEmailHash(String emailHash) { this.emailHash = emailHash; }
 
     public String getPassword() { return password; }
     public void setPassword(String password) { this.password = password; }
