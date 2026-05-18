@@ -9,6 +9,7 @@ function Login({ siteName = 'SanaBot' }) {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [googleEnabled, setGoogleEnabled] = useState(false);
+  const [githubEnabled, setGithubEnabled] = useState(false);
   const navigate = useNavigate();
   const toast = useToast();
 
@@ -17,8 +18,10 @@ function Login({ siteName = 'SanaBot' }) {
       try {
         const res = await auth.providers();
         setGoogleEnabled(Boolean(res.data?.googleEnabled));
+        setGithubEnabled(Boolean(res.data?.githubEnabled));
       } catch {
         setGoogleEnabled(false);
+        setGithubEnabled(false);
       }
     })();
   }, []);
@@ -29,8 +32,8 @@ function Login({ siteName = 'SanaBot' }) {
     if (res.data?.email) localStorage.setItem('userEmail', res.data.email);
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async (event) => {
+    event.preventDefault();
     setLoading(true);
     try {
       const res = await auth.login({ email, password });
@@ -64,7 +67,7 @@ function Login({ siteName = 'SanaBot' }) {
             </div>
             <div className="rounded-2xl border border-[var(--border-color)] bg-[var(--card-strong)] p-4">
               <div className="text-sm font-medium text-[var(--text-primary)]">AI көмек</div>
-              <div className="mt-1 text-xs text-[var(--text-secondary)]">Қысқа кеңес пен идеяларды нақтылау</div>
+              <div className="mt-1 text-xs text-[var(--text-secondary)]">Күрделі істі қадамдарға бөліп алу</div>
             </div>
             <div className="rounded-2xl border border-[var(--border-color)] bg-[var(--card-strong)] p-4">
               <div className="text-sm font-medium text-[var(--text-primary)]">Күнтізбе</div>
@@ -84,7 +87,7 @@ function Login({ siteName = 'SanaBot' }) {
             <input
               type="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(event) => setEmail(event.target.value)}
               className="app-input"
               placeholder="example@mail.com"
               required
@@ -95,7 +98,7 @@ function Login({ siteName = 'SanaBot' }) {
             <input
               type="password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(event) => setPassword(event.target.value)}
               className="app-input"
               placeholder="••••••••"
               required
@@ -106,16 +109,28 @@ function Login({ siteName = 'SanaBot' }) {
           </PrimaryButton>
         </form>
 
-        {googleEnabled ? (
-          <a
-            href="http://localhost:8080/oauth2/authorization/google"
-            className="mt-3 flex w-full items-center justify-center rounded-xl border border-[var(--border-color)] bg-[var(--card-strong)] px-4 py-3 text-sm font-medium text-[var(--text-primary)] transition hover:border-[var(--brand-border)] hover:text-[var(--brand-strong)]"
-          >
-            Google арқылы кіру
-          </a>
+        {googleEnabled || githubEnabled ? (
+          <div className="mt-3 grid gap-2">
+            {googleEnabled ? (
+              <a
+                href="http://localhost:8080/oauth2/authorization/google"
+                className="flex w-full items-center justify-center rounded-xl border border-[var(--border-color)] bg-[var(--card-strong)] px-4 py-3 text-sm font-medium text-[var(--text-primary)] transition hover:border-[var(--brand-border)] hover:text-[var(--brand-strong)]"
+              >
+                Google арқылы кіру
+              </a>
+            ) : null}
+            {githubEnabled ? (
+              <a
+                href="http://localhost:8080/oauth2/authorization/github"
+                className="flex w-full items-center justify-center rounded-xl border border-[var(--border-color)] bg-[var(--card-strong)] px-4 py-3 text-sm font-medium text-[var(--text-primary)] transition hover:border-[var(--brand-border)] hover:text-[var(--brand-strong)]"
+              >
+                GitHub арқылы кіру
+              </a>
+            ) : null}
+          </div>
         ) : (
           <div className="mt-3 rounded-xl border border-[var(--border-color)] bg-[var(--card-soft)] px-4 py-3 text-sm text-[var(--text-secondary)]">
-            Google арқылы кіру бұл ортада бапталмаған.
+            Google және GitHub арқылы кіру бұл ортада бапталмаған.
           </div>
         )}
 

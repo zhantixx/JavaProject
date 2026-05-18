@@ -10,6 +10,7 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.Instant;
+import java.util.Locale;
 import java.util.Map;
 
 @Service
@@ -33,10 +34,14 @@ public class OAuthAccountService {
     }
 
     public void saveOrUpdateGoogle(String email, String accessToken, String refreshToken, Instant expiresAt) {
-        OAuthAccount acc = repository.findByEmailAndProvider(email, GOOGLE).orElseGet(() -> {
-            OAuthAccount a = new OAuthAccount(email, GOOGLE);
-            return a;
-        });
+        saveOrUpdateProvider(email, GOOGLE, accessToken, refreshToken, expiresAt);
+    }
+
+    public void saveOrUpdateProvider(String email, String provider, String accessToken, String refreshToken, Instant expiresAt) {
+        String normalizedProvider = provider == null ? "" : provider.trim().toLowerCase(Locale.ROOT);
+        OAuthAccount acc = repository.findByEmailAndProvider(email, normalizedProvider).orElseGet(() ->
+                new OAuthAccount(email, normalizedProvider)
+        );
         acc.setAccessToken(accessToken);
         if (refreshToken != null && !refreshToken.isBlank()) {
             acc.setRefreshToken(refreshToken);

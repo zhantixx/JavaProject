@@ -17,7 +17,7 @@ import java.util.Set;
 @Service
 public class AdminService {
 
-    private static final Set<String> ALLOWED_ROLES = Set.of("USER", "ADMIN");
+    private static final Set<String> ALLOWED_ROLES = Set.of("USER", "PREMIUM", "ADMIN");
 
     private final UserRepository userRepository;
     private final AuditLogRepository auditLogRepository;
