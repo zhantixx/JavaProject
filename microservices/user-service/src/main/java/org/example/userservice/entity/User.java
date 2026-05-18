@@ -28,6 +28,9 @@ public class User {
     @Column(name = "avatar_url")
     private String avatarUrl;
 
+    @Column(name = "phone")
+    private String phone;
+
     private String role = "USER";
 
     @Column(name = "consent_given")
@@ -35,6 +38,15 @@ public class User {
 
     @Column(name = "active")
     private Boolean active = true;
+
+    @Column(name = "email_notifications_enabled")
+    private Boolean emailNotificationsEnabled = true;
+
+    @Column(name = "push_notifications_enabled")
+    private Boolean pushNotificationsEnabled = true;
+
+    @Column(name = "reminder_window_minutes")
+    private Integer reminderWindowMinutes = 60;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
@@ -91,6 +103,9 @@ public class User {
     public String getAvatarUrl() { return avatarUrl; }
     public void setAvatarUrl(String avatarUrl) { this.avatarUrl = avatarUrl; }
 
+    public String getPhone() { return phone; }
+    public void setPhone(String phone) { this.phone = phone; }
+
     public String getRole() { return role; }
     public void setRole(String role) { this.role = role; }
 
@@ -99,6 +114,15 @@ public class User {
 
     public Boolean getActive() { return active; }
     public void setActive(Boolean active) { this.active = active; }
+
+    public Boolean getEmailNotificationsEnabled() { return emailNotificationsEnabled; }
+    public void setEmailNotificationsEnabled(Boolean emailNotificationsEnabled) { this.emailNotificationsEnabled = emailNotificationsEnabled; }
+
+    public Boolean getPushNotificationsEnabled() { return pushNotificationsEnabled; }
+    public void setPushNotificationsEnabled(Boolean pushNotificationsEnabled) { this.pushNotificationsEnabled = pushNotificationsEnabled; }
+
+    public Integer getReminderWindowMinutes() { return reminderWindowMinutes; }
+    public void setReminderWindowMinutes(Integer reminderWindowMinutes) { this.reminderWindowMinutes = reminderWindowMinutes; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

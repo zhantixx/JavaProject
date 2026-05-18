@@ -4,6 +4,9 @@ public class UserNotificationProfileResponse {
     private Long id;
     private String email;
     private String name;
+    private Boolean emailNotificationsEnabled;
+    private Boolean pushNotificationsEnabled;
+    private Integer reminderWindowMinutes;
 
     public UserNotificationProfileResponse() {
     }
@@ -14,6 +17,20 @@ public class UserNotificationProfileResponse {
         this.name = name;
     }
 
+    public UserNotificationProfileResponse(Long id,
+                                           String email,
+                                           String name,
+                                           Boolean emailNotificationsEnabled,
+                                           Boolean pushNotificationsEnabled,
+                                           Integer reminderWindowMinutes) {
+        this.id = id;
+        this.email = email;
+        this.name = name;
+        this.emailNotificationsEnabled = emailNotificationsEnabled;
+        this.pushNotificationsEnabled = pushNotificationsEnabled;
+        this.reminderWindowMinutes = reminderWindowMinutes;
+    }
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -22,4 +39,13 @@ public class UserNotificationProfileResponse {
 
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
+
+    public Boolean getEmailNotificationsEnabled() { return emailNotificationsEnabled; }
+    public void setEmailNotificationsEnabled(Boolean emailNotificationsEnabled) { this.emailNotificationsEnabled = emailNotificationsEnabled; }
+
+    public Boolean getPushNotificationsEnabled() { return pushNotificationsEnabled; }
+    public void setPushNotificationsEnabled(Boolean pushNotificationsEnabled) { this.pushNotificationsEnabled = pushNotificationsEnabled; }
+
+    public Integer getReminderWindowMinutes() { return reminderWindowMinutes; }
+    public void setReminderWindowMinutes(Integer reminderWindowMinutes) { this.reminderWindowMinutes = reminderWindowMinutes; }
 }

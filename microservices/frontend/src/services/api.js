@@ -137,6 +137,12 @@ export const profile = {
   deleteAccount: () => api.delete('/users/me'),
 };
 
+export const notifications = {
+  list: (userId) => api.get(`/notifications/users/${userId}`),
+  summary: (userId) => api.get(`/notifications/users/${userId}/summary`),
+  markAsRead: (userId, notificationId) => api.patch(`/notifications/users/${userId}/${notificationId}/read`),
+};
+
 export const calendar = {
   icsUrl: (userId) => {
     const uid = userId || localStorage.getItem('userId') || 1;

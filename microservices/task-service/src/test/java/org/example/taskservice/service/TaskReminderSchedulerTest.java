@@ -6,6 +6,7 @@ import org.example.taskservice.entity.Task;
 import org.example.taskservice.repository.TaskRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.ResponseEntity;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.client.RestTemplate;
 
@@ -13,7 +14,6 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -29,6 +29,7 @@ class TaskReminderSchedulerTest {
     void setUp() {
         ReflectionTestUtils.setField(scheduler, "userServiceUrl", "http://user-service:8081");
         ReflectionTestUtils.setField(scheduler, "reminderWindowMinutes", 60L);
+        ReflectionTestUtils.setField(scheduler, "internalApiSecret", "secret");
     }
 
     @Test
@@ -42,14 +43,23 @@ class TaskReminderSchedulerTest {
 
         UserNotificationProfileResponse profile = new UserNotificationProfileResponse();
         profile.setEmail("user@example.com");
+        profile.setEmailNotificationsEnabled(true);
+        profile.setPushNotificationsEnabled(true);
+        profile.setReminderWindowMinutes(60);
 
         when(taskRepository.findByDeadlineBetweenAndReminderSentFalse(any(), any())).thenReturn(List.of(task));
         when(taskRepository.findByDeadlineBeforeAndOverdueSentFalse(any())).thenReturn(List.of());
-        when(restTemplate.getForObject(anyString(), any())).thenReturn(profile);
+        when(restTemplate.exchange(
+                org.mockito.ArgumentMatchers.anyString(),
+                any(),
+                any(),
+                org.mockito.ArgumentMatchers.eq(UserNotificationProfileResponse.class)
+        ))
+                .thenReturn(ResponseEntity.ok(profile));
 
         scheduler.publishDeadlineNotifications();
 
-        verify(notificationProducer).send(any(NotificationRequest.class));
+        verify(notificationProducer, org.mockito.Mockito.times(2)).send(any(NotificationRequest.class));
         verify(taskRepository).save(task);
     }
 }

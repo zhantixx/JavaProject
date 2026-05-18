@@ -8,6 +8,7 @@ import OAuth2Redirect from './components/OAuth2Redirect';
 import Profile from './pages/Profile';
 import CalendarPage from './pages/Calendar';
 import NotesPage from './pages/Notes';
+import NotificationsPage from './pages/Notifications';
 import DashboardPage from './pages/Dashboard';
 import TaskCreatePage from './pages/TaskCreate';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -179,6 +180,7 @@ function AppShell() {
           <Route path="/tasks/new" element={token ? <TaskCreatePage /> : <Navigate to="/login" replace />} />
           <Route path="/calendar" element={token ? <CalendarPage /> : <Navigate to="/login" replace />} />
           <Route path="/notes" element={token ? <NotesPage /> : <Navigate to="/login" replace />} />
+          <Route path="/notifications" element={token ? <NotificationsPage /> : <Navigate to="/login" replace />} />
           <Route path="/chat" element={token ? <ChatPage /> : <Navigate to="/login" replace />} />
           <Route path="/profile" element={token ? <Profile /> : <Navigate to="/login" replace />} />
           <Route path="*" element={<Navigate to={token ? '/home' : '/login'} replace />} />

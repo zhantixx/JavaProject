@@ -3,6 +3,7 @@ package org.example.notificationservice.service;
 import org.example.notificationservice.dto.NotificationRequest;
 import org.example.notificationservice.dto.NotificationResponse;
 import org.example.notificationservice.dto.NotificationItemResponse;
+import org.example.notificationservice.dto.NotificationSummaryResponse;
 import org.example.notificationservice.entity.NotificationEntity;
 import org.example.notificationservice.entity.NotificationEntity.NotificationStatus;
 import org.example.notificationservice.entity.NotificationEntity.NotificationType;
@@ -91,6 +92,13 @@ public class NotificationService {
             notificationRepository.save(notification);
         }
         return NotificationItemResponse.from(notification);
+    }
+
+    public NotificationSummaryResponse getUserSummary(Long userId) {
+        return new NotificationSummaryResponse(
+                notificationRepository.countByUserId(userId),
+                notificationRepository.countByUserIdAndReadAtIsNull(userId)
+        );
     }
 
     private boolean sendPushNotification(Long userId, String title, String content) {

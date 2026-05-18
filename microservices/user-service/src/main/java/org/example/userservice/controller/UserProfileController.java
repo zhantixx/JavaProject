@@ -26,7 +26,7 @@ public class UserProfileController {
     @GetMapping
     public ResponseEntity<UserMeResponse> me(@AuthenticationPrincipal UserDetails principal) {
         if (principal == null) {
-            return ResponseEntity.ok(new UserMeResponse(1L, "test@example.com", "Test User", "USER", null, null, true));
+            return ResponseEntity.ok(new UserMeResponse(1L, "test@example.com", "Test User", "USER", null, null, null, true, true, true, 60));
         }
         User user = userRepository.findByEmail(principal.getUsername()).orElseThrow();
         return ResponseEntity.ok(toResponse(user));
@@ -42,8 +42,12 @@ public class UserProfileController {
                     request.getName() != null ? request.getName() : "Test User",
                     "USER",
                     request.getAvatarUrl(),
+                    request.getPhone(),
                     null,
-                    true
+                    true,
+                    request.getEmailNotificationsEnabled() != null ? request.getEmailNotificationsEnabled() : true,
+                    request.getPushNotificationsEnabled() != null ? request.getPushNotificationsEnabled() : true,
+                    request.getReminderWindowMinutes() != null ? request.getReminderWindowMinutes() : 60
             ));
         }
         User user = userRepository.findByEmail(principal.getUsername()).orElseThrow();
@@ -52,6 +56,19 @@ public class UserProfileController {
         }
         if (request.getAvatarUrl() != null) {
             user.setAvatarUrl(request.getAvatarUrl());
+        }
+        if (request.getPhone() != null) {
+            user.setPhone(request.getPhone().isBlank() ? null : request.getPhone().trim());
+        }
+        if (request.getEmailNotificationsEnabled() != null) {
+            user.setEmailNotificationsEnabled(request.getEmailNotificationsEnabled());
+        }
+        if (request.getPushNotificationsEnabled() != null) {
+            user.setPushNotificationsEnabled(request.getPushNotificationsEnabled());
+        }
+        if (request.getReminderWindowMinutes() != null) {
+            int bounded = Math.max(5, Math.min(1440, request.getReminderWindowMinutes()));
+            user.setReminderWindowMinutes(bounded);
         }
         userRepository.save(user);
         return ResponseEntity.ok(toResponse(user));
@@ -90,8 +107,12 @@ public class UserProfileController {
                 user.getName(),
                 user.getRole(),
                 user.getAvatarUrl(),
+                user.getPhone(),
                 user.getCreatedAt() == null ? null : user.getCreatedAt().toString(),
-                user.getPassword() == null || !user.getPassword().startsWith("{noop}oauth2-")
+                user.getPassword() == null || !user.getPassword().startsWith("{noop}oauth2-"),
+                user.getEmailNotificationsEnabled(),
+                user.getPushNotificationsEnabled(),
+                user.getReminderWindowMinutes()
         );
     }
 }

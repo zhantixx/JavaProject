@@ -30,3 +30,11 @@ export function formatLongDate(value) {
   if (!date) return 'Көрсетілмеген';
   return `${date.getDate()} ${KAZAKH_MONTHS[date.getMonth()]} ${date.getFullYear()}`;
 }
+
+export function formatLongDateTime(value) {
+  const date = asDate(value);
+  if (!date) return 'Көрсетілмеген';
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  return `${date.getDate()} ${KAZAKH_MONTHS[date.getMonth()]} ${date.getFullYear()}, ${hours}:${minutes}`;
+}

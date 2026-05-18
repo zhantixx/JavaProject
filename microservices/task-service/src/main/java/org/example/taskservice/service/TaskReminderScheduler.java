@@ -4,6 +4,9 @@ import org.example.taskservice.dto.NotificationRequest;
 import org.example.taskservice.dto.UserNotificationProfileResponse;
 import org.example.taskservice.entity.Task;
 import org.example.taskservice.repository.TaskRepository;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -25,6 +28,9 @@ public class TaskReminderScheduler {
     @Value("${task.reminders.window-minutes:60}")
     private long reminderWindowMinutes;
 
+    @Value("${internal.api.secret:local-dev-internal-secret}")
+    private String internalApiSecret;
+
     public TaskReminderScheduler(TaskRepository taskRepository,
                                  TaskNotificationProducer notificationProducer,
                                  RestTemplate restTemplate) {
@@ -41,15 +47,25 @@ public class TaskReminderScheduler {
     }
 
     private void publishReminders(LocalDateTime now) {
-        LocalDateTime windowEnd = now.plusMinutes(reminderWindowMinutes);
-        List<Task> tasks = taskRepository.findByDeadlineBetweenAndReminderSentFalse(now, windowEnd);
+        LocalDateTime fallbackWindowEnd = now.plusMinutes(reminderWindowMinutes);
+        List<Task> tasks = taskRepository.findByDeadlineBetweenAndReminderSentFalse(now, fallbackWindowEnd);
         for (Task task : tasks) {
             if (isDone(task)) {
                 continue;
             }
-            sendNotification(task, "Task deadline is near", "Reminder: " + task.getTitle() + " is due at " + task.getDeadline());
-            task.setReminderSent(true);
-            taskRepository.save(task);
+            UserNotificationProfileResponse profile = loadProfile(task.getUserId());
+            long userWindow = profile != null && profile.getReminderWindowMinutes() != null
+                    ? profile.getReminderWindowMinutes()
+                    : reminderWindowMinutes;
+
+            if (task.getDeadline() == null || task.getDeadline().isAfter(now.plusMinutes(userWindow))) {
+                continue;
+            }
+
+            if (sendNotification(task, profile, "Task deadline is near", "Reminder: " + task.getTitle() + " is due at " + task.getDeadline())) {
+                task.setReminderSent(true);
+                taskRepository.save(task);
+            }
         }
     }
 
@@ -59,28 +75,57 @@ public class TaskReminderScheduler {
             if (isDone(task)) {
                 continue;
             }
-            sendNotification(task, "Task is overdue", "Overdue: " + task.getTitle() + " was due at " + task.getDeadline());
-            task.setOverdueSent(true);
-            taskRepository.save(task);
+            UserNotificationProfileResponse profile = loadProfile(task.getUserId());
+            if (sendNotification(task, profile, "Task is overdue", "Overdue: " + task.getTitle() + " was due at " + task.getDeadline())) {
+                task.setOverdueSent(true);
+                taskRepository.save(task);
+            }
         }
     }
 
-    private void sendNotification(Task task, String title, String content) {
-        UserNotificationProfileResponse profile = restTemplate.getForObject(
-                userServiceUrl + "/api/internal/users/" + task.getUserId() + "/notification-profile",
+    private UserNotificationProfileResponse loadProfile(Long userId) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("X-Internal-Secret", internalApiSecret);
+        HttpEntity<Void> entity = new HttpEntity<>(headers);
+        return restTemplate.exchange(
+                userServiceUrl + "/api/internal/users/" + userId + "/notification-profile",
+                HttpMethod.GET,
+                entity,
                 UserNotificationProfileResponse.class
-        );
-        if (profile == null || profile.getEmail() == null || profile.getEmail().isBlank()) {
-            return;
+        ).getBody();
+    }
+
+    private boolean sendNotification(Task task, UserNotificationProfileResponse profile, String title, String content) {
+        if (profile == null) {
+            return false;
         }
 
-        NotificationRequest request = new NotificationRequest();
-        request.setUserId(task.getUserId());
-        request.setRecipientEmail(profile.getEmail());
-        request.setType("EMAIL");
-        request.setTitle(title);
-        request.setContent(content);
-        notificationProducer.send(request);
+        boolean sent = false;
+        if (Boolean.TRUE.equals(profile.getEmailNotificationsEnabled())
+                && profile.getEmail() != null
+                && !profile.getEmail().isBlank()) {
+            NotificationRequest request = new NotificationRequest();
+            request.setUserId(task.getUserId());
+            request.setRecipientEmail(profile.getEmail());
+            request.setType("EMAIL");
+            request.setTitle(title);
+            request.setContent(content);
+            notificationProducer.send(request);
+            sent = true;
+        }
+
+        if (Boolean.TRUE.equals(profile.getPushNotificationsEnabled())) {
+            NotificationRequest request = new NotificationRequest();
+            request.setUserId(task.getUserId());
+            request.setRecipientEmail(profile.getEmail());
+            request.setType("PUSH");
+            request.setTitle(title);
+            request.setContent(content);
+            notificationProducer.send(request);
+            sent = true;
+        }
+
+        return sent;
     }
 
     private boolean isDone(Task task) {
