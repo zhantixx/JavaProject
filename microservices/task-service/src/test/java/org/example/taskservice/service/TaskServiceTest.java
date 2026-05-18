@@ -52,12 +52,14 @@ class TaskServiceTest {
     void createTask_shouldSaveAndReturnResponse() {
         TaskRequest request = new TaskRequest();
         request.setTitle("Test Task");
+        request.setDescription("A".repeat(1200));
         request.setPriority("HIGH");
         Long userId = 1L;
 
         Task savedTask = new Task();
         savedTask.setId(100L);
         savedTask.setTitle("Test Task");
+        savedTask.setDescription(request.getDescription());
         savedTask.setPriority("HIGH");
         savedTask.setUserId(userId);
 
@@ -66,6 +68,7 @@ class TaskServiceTest {
         TaskResponse response = taskService.createTask(request, userId);
 
         assertThat(response.getTitle()).isEqualTo("Test Task");
+        assertThat(response.getDescription()).hasSize(1200);
         assertThat(response.getUserId()).isEqualTo(userId);
         verify(taskRepository).save(any(Task.class));
         verify(restTemplate).postForEntity(anyString(), any(), eq(Void.class));
