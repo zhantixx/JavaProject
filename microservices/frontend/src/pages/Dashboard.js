@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { notes, profile, tasks } from '../services/api';
+import { ai, notes, profile, tasks } from '../services/api';
 import { useToast } from '../components/Toast';
 import { GhostButton, PageIntro, PrimaryButton, Surface } from '../components/UiKit';
 import { buildPlanSummary, buildProductivityTrackers, getMonthBounds, getWeekBounds, getYearBounds } from '../utils/planning';
@@ -8,10 +8,42 @@ import { buildPlanSummary, buildProductivityTrackers, getMonthBounds, getWeekBou
 function formatDeadline(deadline) {
   return new Date(deadline).toLocaleString('kk-KZ', {
     day: '2-digit',
-    month: '2-digit',
+    month: 'long',
     hour: '2-digit',
     minute: '2-digit',
   });
+}
+
+function buildRecommendationPayload(user, taskItems, noteItems) {
+  return {
+    userName: user?.name || '',
+    tasks: taskItems.map((task) => ({
+      title: task.title,
+      description: task.description,
+      priority: task.priority,
+      status: task.status,
+      deadline: task.deadline,
+    })),
+    notes: noteItems.slice(0, 8).map((note) => ({
+      title: note.title,
+      content: note.content,
+    })),
+  };
+}
+
+function RecommendationModeBadge({ mode }) {
+  const isAi = mode === 'ai';
+  return (
+    <span
+      className={`rounded-full px-3 py-1 text-xs font-medium ${
+        isAi
+          ? 'bg-[var(--brand-soft)] text-[var(--brand-strong)]'
+          : 'border border-[var(--border-color)] text-[var(--text-secondary)]'
+      }`}
+    >
+      {isAi ? 'AI online' : 'AI local'}
+    </span>
+  );
 }
 
 export default function DashboardPage() {
@@ -20,25 +52,53 @@ export default function DashboardPage() {
   const [noteItems, setNoteItems] = useState([]);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [recommendationLoading, setRecommendationLoading] = useState(true);
+  const [recommendationData, setRecommendationData] = useState({
+    mode: 'local',
+    summary: '',
+    recommendations: [],
+  });
 
   useEffect(() => {
     (async () => {
       setLoading(true);
+      setRecommendationLoading(true);
       try {
         const meRes = await profile.me();
         const me = meRes.data;
         setUser(me);
+
         if (me?.id) {
           localStorage.setItem('userId', me.id);
         }
+
         const [tasksRes, notesRes] = await Promise.all([
           tasks.getAll(),
           me?.id ? notes.getAll(me.id) : Promise.resolve({ data: [] }),
         ]);
-        setTaskItems(tasksRes.data || []);
-        setNoteItems(notesRes.data || []);
+
+        const loadedTasks = tasksRes.data || [];
+        const loadedNotes = notesRes.data || [];
+        setTaskItems(loadedTasks);
+        setNoteItems(loadedNotes);
+
+        try {
+          const recommendationRes = await ai.getRecommendations(
+            buildRecommendationPayload(me, loadedTasks, loadedNotes)
+          );
+          setRecommendationData(recommendationRes.data || { mode: 'local', summary: '', recommendations: [] });
+        } catch (recommendationError) {
+          setRecommendationData({
+            mode: 'local',
+            summary: 'Ұсыныстарды жүктеу кезінде уақытша шектеу болды.',
+            recommendations: [],
+          });
+        } finally {
+          setRecommendationLoading(false);
+        }
       } catch (err) {
         toast.error(err.response?.data || 'Басты бет деректері жүктелмеді');
+        setRecommendationLoading(false);
       } finally {
         setLoading(false);
       }
@@ -77,6 +137,7 @@ export default function DashboardPage() {
       return new Date(task.deadline).toDateString() === new Date().toDateString();
     }).length;
     const doneCount = taskItems.filter((task) => task.status === 'DONE').length;
+
     return [
       { label: 'Тапсырма', value: taskItems.length, hint: 'Жалпы жұмыс тізімі' },
       { label: 'Бүгін', value: todayCount, hint: 'Бүгінгі мерзімдер' },
@@ -90,7 +151,7 @@ export default function DashboardPage() {
       <PageIntro
         eyebrow="Басты бет"
         title={user?.name ? `${user.name}, бүгінгі фокус дайын` : 'Бүгінгі фокус дайын'}
-        description="Бұл бет сізге алдағы мерзімдерді, негізгі әрекеттерді және қысқа шолуды береді. Тапсырма құру бөлек экранда орналасқан."
+        description="Бұл бет сізге алдағы мерзімдерді, негізгі әрекеттерді және ақылды ұсыныстарды бір жерден көрсетеді."
         stats={stats}
         actions={
           <>
@@ -105,38 +166,83 @@ export default function DashboardPage() {
       />
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-        <Surface className="overflow-hidden">
-          <div className="border-b border-[var(--border-color)] px-5 py-5">
-            <h2 className="text-lg font-semibold text-[var(--text-primary)]">Жақын мерзімдер</h2>
-            <p className="mt-1 text-sm text-[var(--text-secondary)]">Алдымен бітетін тапсырмалар осында жиналды.</p>
-          </div>
-          <div className="space-y-3 p-5">
-            {loading ? (
-              <div className="text-sm text-[var(--text-secondary)]">Жүктеліп жатыр...</div>
-            ) : upcomingTasks.length === 0 ? (
-              <div className="rounded-2xl border border-[var(--border-color)] bg-[var(--card-strong)] p-4 text-sm text-[var(--text-secondary)]">
-                Алдағы мерзімі бар тапсырмалар жоқ.
-              </div>
-            ) : (
-              upcomingTasks.map((task) => (
-                <div key={task.id} className="rounded-2xl border border-[var(--border-color)] bg-[var(--card-strong)] p-4">
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <div className="font-medium text-[var(--text-primary)]">{task.title}</div>
-                      <div className="mt-1 text-sm text-[var(--text-secondary)]">
-                        {task.description || 'Қысқа сипаттама қосылмаған'}
-                      </div>
-                    </div>
-                    <span className="app-badge">{task.priority || 'MEDIUM'}</span>
-                  </div>
-                  <div className="mt-3 text-sm text-[var(--text-secondary)]">
-                    Аяқтау уақыты: <span className="font-medium text-[var(--text-primary)]">{formatDeadline(task.deadline)}</span>
-                  </div>
+        <div className="space-y-6">
+          <Surface className="overflow-hidden">
+            <div className="border-b border-[var(--border-color)] px-5 py-5">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-lg font-semibold text-[var(--text-primary)]">AI ұсыныстары</h2>
+                  <p className="mt-1 text-sm text-[var(--text-secondary)]">
+                    Ағымдағы тапсырмалар мен жазбаларға сүйенген қысқа бағыттар.
+                  </p>
                 </div>
-              ))
-            )}
-          </div>
-        </Surface>
+                <RecommendationModeBadge mode={recommendationData.mode} />
+              </div>
+            </div>
+            <div className="space-y-3 p-5">
+              {recommendationLoading ? (
+                <div className="text-sm text-[var(--text-secondary)]">Ұсыныстар жүктеліп жатыр...</div>
+              ) : (
+                <>
+                  <div className="rounded-2xl border border-[var(--border-color)] bg-[var(--card-strong)] p-4 text-sm leading-6 text-[var(--text-secondary)]">
+                    {recommendationData.summary || 'Қазір ұсыныс жоқ, бірақ жаңа деректер түскен сайын бұл бөлім жаңарады.'}
+                  </div>
+
+                  <div className="grid gap-3">
+                    {(recommendationData.recommendations || []).map((item, index) => (
+                      <div key={`${item.title}-${index}`} className="rounded-2xl border border-[var(--border-color)] bg-[var(--card-strong)] p-4">
+                        <div className="font-medium text-[var(--text-primary)]">{item.title}</div>
+                        <div className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">{item.detail}</div>
+                        <div className="mt-3 rounded-xl bg-[var(--panel-bg)] px-3 py-3 text-sm text-[var(--text-primary)]">
+                          <span className="font-medium text-[var(--brand-strong)]">Келесі қадам:</span> {item.action}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {!recommendationData.recommendations?.length ? (
+                    <div className="text-sm text-[var(--text-secondary)]">
+                      Ұсыныс генерациясы уақытша бос қайтты. Тапсырмалар көбейген сайын бұл бөлім пайдалырақ болады.
+                    </div>
+                  ) : null}
+                </>
+              )}
+            </div>
+          </Surface>
+
+          <Surface className="overflow-hidden">
+            <div className="border-b border-[var(--border-color)] px-5 py-5">
+              <h2 className="text-lg font-semibold text-[var(--text-primary)]">Жақын мерзімдер</h2>
+              <p className="mt-1 text-sm text-[var(--text-secondary)]">Алдымен бітетін тапсырмалар осында жиналды.</p>
+            </div>
+            <div className="space-y-3 p-5">
+              {loading ? (
+                <div className="text-sm text-[var(--text-secondary)]">Жүктеліп жатыр...</div>
+              ) : upcomingTasks.length === 0 ? (
+                <div className="rounded-2xl border border-[var(--border-color)] bg-[var(--card-strong)] p-4 text-sm text-[var(--text-secondary)]">
+                  Алдағы мерзімі бар тапсырмалар жоқ.
+                </div>
+              ) : (
+                upcomingTasks.map((task) => (
+                  <div key={task.id} className="rounded-2xl border border-[var(--border-color)] bg-[var(--card-strong)] p-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0 flex-1">
+                        <div className="font-medium text-[var(--text-primary)]">{task.title}</div>
+                        <div className="mt-1 line-clamp-2 text-sm text-[var(--text-secondary)]">
+                          {task.description || 'Қысқа сипаттама қосылмаған'}
+                        </div>
+                      </div>
+                      <span className="app-badge">{task.priority || 'MEDIUM'}</span>
+                    </div>
+                    <div className="mt-3 text-sm text-[var(--text-secondary)]">
+                      Соңғы мерзім: <span className="font-medium text-[var(--text-primary)]">{formatDeadline(task.deadline)}</span>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </Surface>
+        </div>
 
         <div className="space-y-6">
           <Surface className="overflow-hidden">
@@ -180,7 +286,7 @@ export default function DashboardPage() {
           <Surface className="overflow-hidden">
             <div className="border-b border-[var(--border-color)] px-5 py-5">
               <h2 className="text-lg font-semibold text-[var(--text-primary)]">Өнімділік трекерлері</h2>
-              <p className="mt-1 text-sm text-[var(--text-secondary)]">Жұмыс ырғағының денсаулығын қарапайым индикаторлармен бақылау.</p>
+              <p className="mt-1 text-sm text-[var(--text-secondary)]">Жұмыс ырғағын қарапайым индикаторлармен бақылау.</p>
             </div>
             <div className="grid gap-3 p-5 sm:grid-cols-2">
               {[
@@ -207,9 +313,9 @@ export default function DashboardPage() {
                 <div className="font-medium text-[var(--text-primary)]">Тапсырма құру</div>
                 <div className="mt-1 text-sm text-[var(--text-secondary)]">Уақытын көрсетіп, жеке жоспарға қосыңыз.</div>
               </Link>
-              <Link to="/notes" className="rounded-2xl border border-[var(--border-color)] bg-[var(--card-strong)] p-4 transition hover:border-[var(--brand-border)]">
-                <div className="font-medium text-[var(--text-primary)]">Жазбаларды ашу</div>
-                <div className="mt-1 text-sm text-[var(--text-secondary)]">Ойлар мен идеяларды реттеу.</div>
+              <Link to="/notifications" className="rounded-2xl border border-[var(--border-color)] bg-[var(--card-strong)] p-4 transition hover:border-[var(--brand-border)]">
+                <div className="font-medium text-[var(--text-primary)]">Еске салғыштарды ашу</div>
+                <div className="mt-1 text-sm text-[var(--text-secondary)]">Соңғы хабарламалар мен reminder тарихын қарап шығыңыз.</div>
               </Link>
               <Link to="/profile" className="rounded-2xl border border-[var(--border-color)] bg-[var(--card-strong)] p-4 transition hover:border-[var(--brand-border)]">
                 <div className="font-medium text-[var(--text-primary)]">Профильді баптау</div>

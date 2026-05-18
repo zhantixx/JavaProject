@@ -158,6 +158,10 @@ export const chat = {
   send: (message) => api.post('/chat', { message }),
 };
 
+export const ai = {
+  getRecommendations: (data) => api.post('/ai/recommendations', data),
+};
+
 export const analytics = {
   getStats: () => api.get('/analytics/stats'),
   getUserStats: (userId) => api.get(`/analytics/stats/${userId}`),
