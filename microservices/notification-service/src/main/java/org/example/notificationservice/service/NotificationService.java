@@ -2,6 +2,7 @@ package org.example.notificationservice.service;
 
 import org.example.notificationservice.dto.NotificationRequest;
 import org.example.notificationservice.dto.NotificationResponse;
+import org.example.notificationservice.dto.NotificationItemResponse;
 import org.example.notificationservice.entity.NotificationEntity;
 import org.example.notificationservice.entity.NotificationEntity.NotificationStatus;
 import org.example.notificationservice.entity.NotificationEntity.NotificationType;
@@ -10,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 public class NotificationService {
@@ -73,6 +75,22 @@ public class NotificationService {
         response.setId(notification.getId());
         response.setStatus(notification.getStatus().toString());
         return response;
+    }
+
+    public List<NotificationItemResponse> getUserNotifications(Long userId) {
+        return notificationRepository.findAllByUserIdOrderByCreatedAtDesc(userId).stream()
+                .map(NotificationItemResponse::from)
+                .toList();
+    }
+
+    public NotificationItemResponse markAsRead(Long userId, Long notificationId) {
+        NotificationEntity notification = notificationRepository.findByIdAndUserId(notificationId, userId)
+                .orElseThrow();
+        if (notification.getReadAt() == null) {
+            notification.setReadAt(LocalDateTime.now());
+            notificationRepository.save(notification);
+        }
+        return NotificationItemResponse.from(notification);
     }
 
     private boolean sendPushNotification(Long userId, String title, String content) {

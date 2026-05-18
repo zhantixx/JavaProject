@@ -29,6 +29,8 @@ public class NotificationEntity {
 
     private LocalDateTime sentAt;
 
+    private LocalDateTime readAt;
+
     // Enums
     public enum NotificationType {
         EMAIL, PUSH
@@ -65,4 +67,7 @@ public class NotificationEntity {
 
     public LocalDateTime getSentAt() { return sentAt; }
     public void setSentAt(LocalDateTime sentAt) { this.sentAt = sentAt; }
+
+    public LocalDateTime getReadAt() { return readAt; }
+    public void setReadAt(LocalDateTime readAt) { this.readAt = readAt; }
 }
