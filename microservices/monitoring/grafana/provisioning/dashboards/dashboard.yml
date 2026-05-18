@@ -1,0 +1,11 @@
+apiVersion: 1
+
+providers:
+  - name: SanaBot Dashboards
+    orgId: 1
+    folder: SanaBot
+    type: file
+    disableDeletion: false
+    editable: true
+    options:
+      path: /var/lib/grafana/dashboards
