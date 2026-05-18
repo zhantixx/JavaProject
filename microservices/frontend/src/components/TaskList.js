@@ -5,7 +5,7 @@ import { useToast } from './Toast';
 import { GhostButton, PageIntro, PrimaryButton, SectionTitle, Surface } from './UiKit';
 
 const STATUS_LABELS = {
-  PLANNED: 'Жоспар',
+  PLANNED: 'Жоспарда',
   DONE: 'Дайын',
   CANCELED: 'Тоқтатылды',
 };
@@ -47,6 +47,7 @@ function TaskList() {
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState('');
+  const [expandedDescriptions, setExpandedDescriptions] = useState({});
 
   const loadTasks = async () => {
     setLoading(true);
@@ -120,6 +121,13 @@ function TaskList() {
     return 'border-amber-200 bg-[var(--warning-soft)] text-amber-600';
   };
 
+  const toggleDescription = (taskId) => {
+    setExpandedDescriptions((prev) => ({
+      ...prev,
+      [taskId]: !prev[taskId],
+    }));
+  };
+
   return (
     <div className="space-y-6">
       <PageIntro
@@ -148,7 +156,7 @@ function TaskList() {
               />
               <select value={status} onChange={(e) => setStatus(e.target.value)} className="app-input min-w-[180px]">
                 <option value="">Барлық күйлер</option>
-                <option value="PLANNED">Жоспар</option>
+                <option value="PLANNED">Жоспарда</option>
                 <option value="DONE">Дайын</option>
                 <option value="CANCELED">Тоқтатылды</option>
               </select>
@@ -162,59 +170,92 @@ function TaskList() {
           <div className="p-10 text-center text-[var(--text-secondary)]">Сәйкес тапсырма табылмады</div>
         ) : (
           <div className="grid gap-4 p-5 xl:grid-cols-2">
-            {visibleTasks.map((task) => (
-              <article key={task.id} className="rounded-2xl border border-[var(--border-color)] bg-[var(--card-strong)] p-5">
-                <div className="flex flex-wrap items-start justify-between gap-4">
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="text-lg font-semibold text-[var(--text-primary)]">{task.title}</h3>
-                      <span className={`rounded-full border px-2.5 py-1 text-xs font-medium ${priorityClass(task.priority)}`}>
-                        {PRIORITY_LABELS[task.priority] || PRIORITY_LABELS.MEDIUM}
-                      </span>
-                    </div>
-                    {task.description ? (
-                      <p className="mt-3 text-sm leading-6 text-[var(--text-secondary)]">{task.description}</p>
-                    ) : (
-                      <p className="mt-3 text-sm text-[var(--muted-text)]">Сипаттама қосылмаған</p>
-                    )}
-                  </div>
-                  <span className="app-badge">{STATUS_LABELS[task.status] || STATUS_LABELS.PLANNED}</span>
-                </div>
+            {visibleTasks.map((task) => {
+              const description = task.description?.trim() || '';
+              const isLongDescription = description.length > 180 || description.includes('\n');
+              const isExpanded = Boolean(expandedDescriptions[task.id]);
 
-                <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                  <div className="rounded-2xl border border-[var(--border-color)] bg-[var(--panel-bg)] p-3">
-                    <div className="text-xs uppercase tracking-[0.12em] text-[var(--muted-text)]">Орындау уақыты</div>
-                    <div className="mt-2 text-sm font-medium text-[var(--text-primary)]">
-                      {task.deadline ? formatDeadline(task.deadline) : 'Көрсетілмеген'}
-                    </div>
-                  </div>
-                  <div className="rounded-2xl border border-[var(--border-color)] bg-[var(--panel-bg)] p-3">
-                    <div className="text-xs uppercase tracking-[0.12em] text-[var(--muted-text)]">Қалған уақыт</div>
-                    <div className="mt-2 text-sm font-medium text-[var(--text-primary)]">
-                      {task.deadline ? formatRemaining(task.deadline) : 'Шектеу жоқ'}
-                    </div>
-                  </div>
-                </div>
+              return (
+                <article key={task.id} className="rounded-2xl border border-[var(--border-color)] bg-[var(--card-strong)] p-5">
+                  <div className="flex flex-wrap items-start justify-between gap-4">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="text-lg font-semibold text-[var(--text-primary)]">{task.title}</h3>
+                        <span className={`rounded-full border px-2.5 py-1 text-xs font-medium ${priorityClass(task.priority)}`}>
+                          {PRIORITY_LABELS[task.priority] || PRIORITY_LABELS.MEDIUM}
+                        </span>
+                      </div>
 
-                <div className="mt-5 flex flex-wrap gap-2">
-                  <GhostButton onClick={() => handleStatus(task.id, task.status === 'DONE' ? 'PLANNED' : 'DONE')}>
-                    {task.status === 'DONE' ? 'Қайта ашу' : 'Дайын деп белгілеу'}
-                  </GhostButton>
-                  <button
-                    onClick={() => handleStatus(task.id, 'CANCELED')}
-                    className="rounded-xl border border-amber-200 bg-[var(--warning-soft)] px-4 py-2.5 text-sm font-medium text-amber-700 transition hover:border-amber-300"
-                  >
-                    Тоқтату
-                  </button>
-                  <button
-                    onClick={() => handleDelete(task.id)}
-                    className="rounded-xl border border-rose-200 bg-[var(--danger-soft)] px-4 py-2.5 text-sm font-medium text-rose-500 transition hover:border-rose-300"
-                  >
-                    Өшіру
-                  </button>
-                </div>
-              </article>
-            ))}
+                      {description ? (
+                        <div className="mt-3">
+                          <p
+                            className="whitespace-pre-wrap break-words text-sm leading-6 text-[var(--text-secondary)]"
+                            style={
+                              isExpanded
+                                ? undefined
+                                : {
+                                    display: '-webkit-box',
+                                    WebkitBoxOrient: 'vertical',
+                                    WebkitLineClamp: 4,
+                                    overflow: 'hidden',
+                                  }
+                            }
+                          >
+                            {description}
+                          </p>
+                          {isLongDescription ? (
+                            <button
+                              type="button"
+                              onClick={() => toggleDescription(task.id)}
+                              className="mt-2 text-sm font-medium text-[var(--brand-strong)] transition hover:text-[var(--brand-stronger)]"
+                            >
+                              {isExpanded ? 'Жинау' : 'Толығырақ'}
+                            </button>
+                          ) : null}
+                        </div>
+                      ) : (
+                        <p className="mt-3 text-sm text-[var(--muted-text)]">Сипаттама қосылмаған</p>
+                      )}
+                    </div>
+
+                    <span className="app-badge">{STATUS_LABELS[task.status] || STATUS_LABELS.PLANNED}</span>
+                  </div>
+
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                    <div className="rounded-2xl border border-[var(--border-color)] bg-[var(--panel-bg)] p-3">
+                      <div className="text-xs uppercase tracking-[0.12em] text-[var(--muted-text)]">Орындау уақыты</div>
+                      <div className="mt-2 text-sm font-medium text-[var(--text-primary)]">
+                        {task.deadline ? formatDeadline(task.deadline) : 'Көрсетілмеген'}
+                      </div>
+                    </div>
+                    <div className="rounded-2xl border border-[var(--border-color)] bg-[var(--panel-bg)] p-3">
+                      <div className="text-xs uppercase tracking-[0.12em] text-[var(--muted-text)]">Қалған уақыт</div>
+                      <div className="mt-2 text-sm font-medium text-[var(--text-primary)]">
+                        {task.deadline ? formatRemaining(task.deadline) : 'Шектеу жоқ'}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-5 flex flex-wrap gap-2">
+                    <GhostButton onClick={() => handleStatus(task.id, task.status === 'DONE' ? 'PLANNED' : 'DONE')}>
+                      {task.status === 'DONE' ? 'Қайта ашу' : 'Дайын деп белгілеу'}
+                    </GhostButton>
+                    <button
+                      onClick={() => handleStatus(task.id, 'CANCELED')}
+                      className="rounded-xl border border-amber-200 bg-[var(--warning-soft)] px-4 py-2.5 text-sm font-medium text-amber-700 transition hover:border-amber-300"
+                    >
+                      Тоқтату
+                    </button>
+                    <button
+                      onClick={() => handleDelete(task.id)}
+                      className="rounded-xl border border-rose-200 bg-[var(--danger-soft)] px-4 py-2.5 text-sm font-medium text-rose-500 transition hover:border-rose-300"
+                    >
+                      Өшіру
+                    </button>
+                  </div>
+                </article>
+              );
+            })}
           </div>
         )}
       </Surface>
