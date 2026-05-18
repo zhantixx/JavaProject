@@ -18,6 +18,16 @@ async function fileToDataUrl(file) {
   });
 }
 
+function InfoCard({ label, value, hint }) {
+  return (
+    <div className="rounded-2xl border border-[var(--border-color)] bg-[var(--card-strong)] p-4">
+      <div className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--muted-text)]">{label}</div>
+      <div className="mt-2 break-all text-sm font-medium leading-6 text-[var(--text-primary)]">{value || '—'}</div>
+      {hint ? <div className="mt-1 text-xs text-[var(--text-secondary)]">{hint}</div> : null}
+    </div>
+  );
+}
+
 export default function Profile() {
   const toast = useToast();
   const avatarInputRef = useRef(null);
@@ -64,6 +74,10 @@ export default function Profile() {
     const base = form.name || form.email || 'S';
     return base.substring(0, 1).toUpperCase();
   }, [form.email, form.name]);
+
+  const accountType = me?.passwordChangeAvailable ? 'Жергілікті аккаунт' : 'OAuth аккаунт';
+  const securityMode = me?.passwordChangeAvailable ? 'Парольмен қорғалған' : 'Сыртқы провайдер арқылы';
+  const displayName = form.name?.trim() || 'Аты көрсетілмеген';
 
   const onSaveProfile = async (event) => {
     event.preventDefault();
@@ -205,12 +219,12 @@ export default function Profile() {
           <div className="border-b border-[var(--border-color)] px-6 py-5">
             <h2 className="text-xl font-semibold text-[var(--text-primary)]">Жеке ақпарат</h2>
             <p className="mt-1 text-sm text-[var(--text-secondary)]">
-              Көрінетін атыңызды жаңартып, профиль суретін біркелкі түрде реттеңіз.
+              Аккаунттың негізгі деректері, көріну форматы және профиль суреті бір жерде жиналған.
             </p>
           </div>
 
           <form onSubmit={onSaveProfile} className="space-y-6 p-6">
-            <div className="grid gap-4 lg:grid-cols-[220px_minmax(0,1fr)]">
+            <div className="grid gap-4 lg:grid-cols-[240px_minmax(0,1fr)]">
               <div className="rounded-2xl border border-[var(--border-color)] bg-[var(--card-strong)] p-4">
                 <div className="flex flex-col items-center text-center">
                   {form.avatarUrl ? (
@@ -221,8 +235,11 @@ export default function Profile() {
                     </div>
                   )}
 
-                  <div className="mt-4 text-sm font-medium text-[var(--text-primary)]">Профиль суреті</div>
-                  <div className="mt-1 text-xs leading-5 text-[var(--text-secondary)]">JPG немесе PNG, 2 MB дейін</div>
+                  <div className="mt-4 text-base font-semibold text-[var(--text-primary)]">{displayName}</div>
+                  <div className="mt-1 text-sm text-[var(--text-secondary)]">{accountType}</div>
+                  <div className="mt-3 inline-flex rounded-full bg-[var(--brand-soft)] px-3 py-1 text-xs font-medium text-[var(--brand-strong)]">
+                    Белсенді аккаунт
+                  </div>
 
                   <input
                     ref={avatarInputRef}
@@ -244,19 +261,30 @@ export default function Profile() {
                       Аватарды алып тастау
                     </button>
                   </div>
+
+                  <div className="mt-3 text-xs leading-5 text-[var(--text-secondary)]">
+                    JPG немесе PNG, 2 MB дейін
+                  </div>
                 </div>
               </div>
 
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="md:col-span-2">
+              <div className="space-y-4">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <InfoCard label="Аты" value={displayName} hint="Интерфейсте көрінетін атау" />
+                  <InfoCard label="Рөл" value={me?.role || 'USER'} hint="Қолжетімділік деңгейі" />
+                  <InfoCard label="Тіркелген күні" value={formatCreatedAt(me?.createdAt)} hint="Аккаунт ашылған уақыт" />
+                  <InfoCard label="Қауіпсіздік түрі" value={securityMode} hint="Кіруді растау тәсілі" />
+                </div>
+
+                <div>
                   <label className="mb-1 block text-sm font-medium text-[var(--text-secondary)]">Email</label>
                   <div className="rounded-xl border border-[var(--border-color)] bg-[var(--card-strong)] px-3.5 py-3 text-sm text-[var(--text-primary)]">
                     <div className="break-all leading-6">{form.email || '—'}</div>
                   </div>
                 </div>
 
-                <div className="md:col-span-2">
-                  <label className="mb-1 block text-sm font-medium text-[var(--text-secondary)]">Аты</label>
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-[var(--text-secondary)]">Көрінетін аты</label>
                   <input
                     type="text"
                     value={form.name}
@@ -264,6 +292,14 @@ export default function Profile() {
                     className="app-input"
                     placeholder="Сіздің атыңыз"
                   />
+                </div>
+
+                <div className="rounded-2xl border border-[var(--border-color)] bg-[var(--card-strong)] p-4">
+                  <div className="text-sm font-medium text-[var(--text-primary)]">Профиль туралы</div>
+                  <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">
+                    Бұл бөлімде сіздің негізгі аккаунт ақпаратыңыз сақталады. Атыңызды өзгертіп, профиль суретін
+                    жаңартып, кейін осы деректер экспорт пен қауіпсіздік әрекеттерінде пайдаланылады.
+                  </p>
                 </div>
               </div>
             </div>
