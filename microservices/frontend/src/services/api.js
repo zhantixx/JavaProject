@@ -144,6 +144,10 @@ export const notifications = {
 };
 
 export const calendar = {
+  createEvent: (data) => api.post('/calendar/events', data),
+  getEvents: () => api.get('/calendar/events'),
+  updateEvent: (id, data) => api.put(`/calendar/events/${id}`, data),
+  deleteEvent: (id) => api.delete(`/calendar/events/${id}`),
   icsUrl: (userId) => {
     const uid = userId || localStorage.getItem('userId') || 1;
     return `${API_BASE}/calendar/ics?userId=${uid}`;

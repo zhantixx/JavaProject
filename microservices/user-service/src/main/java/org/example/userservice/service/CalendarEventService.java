@@ -5,6 +5,7 @@ import org.example.userservice.entity.Event;
 import org.example.userservice.repository.EventRepository;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -18,6 +19,7 @@ public class CalendarEventService {
     }
 
     public EventDto createEvent(EventDto dto, Long userId) {
+        validateEventTime(dto);
         Event event = new Event();
         event.setTitle(dto.getTitle());
         event.setDescription(dto.getDescription());
@@ -41,6 +43,7 @@ public class CalendarEventService {
         if (!event.getUserId().equals(userId)) {
             throw new RuntimeException("Unauthorized");
         }
+        validateEventTime(dto);
 
         event.setTitle(dto.getTitle());
         event.setDescription(dto.getDescription());
@@ -69,5 +72,17 @@ public class CalendarEventService {
         dto.setStartDateTime(event.getStartDateTime());
         dto.setEndDateTime(event.getEndDateTime());
         return dto;
+    }
+
+    private void validateEventTime(EventDto dto) {
+        if (dto.getStartDateTime() == null || dto.getEndDateTime() == null) {
+            throw new IllegalArgumentException("Start and end time are required");
+        }
+        if (dto.getStartDateTime().isBefore(LocalDateTime.now())) {
+            throw new IllegalArgumentException("Past dates are not allowed");
+        }
+        if (!dto.getStartDateTime().isBefore(dto.getEndDateTime())) {
+            throw new IllegalArgumentException("Start time must be before end time");
+        }
     }
 }

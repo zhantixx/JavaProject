@@ -10,7 +10,6 @@ public class EventDto {
     private LocalDateTime startDateTime;
     private LocalDateTime endDateTime;
 
-    // Методы getColor() и getLocation() удалены, так как они не нужны.
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 

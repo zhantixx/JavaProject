@@ -1,13 +1,40 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { chat, tasks } from '../services/api';
 import { useToast } from './Toast';
 import { GhostButton, PrimaryButton, SectionTitle, Surface } from './UiKit';
+
+function toLocalDateTimeValue(value) {
+  if (!value) {
+    return '';
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  const adjusted = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return adjusted.toISOString().slice(0, 16);
+}
+
+function getMinDateTimeValue() {
+  const now = new Date();
+  now.setSeconds(0, 0);
+  return toLocalDateTimeValue(now);
+}
+
+function isPastDateTime(value) {
+  if (!value) {
+    return false;
+  }
+  return new Date(value).getTime() < Date.now();
+}
 
 function TaskForm({
   onTaskCreated,
   defaultDate = '',
   title = 'Жаңа тапсырма',
-  description = 'Аяқталу уақыты нақты тапсырмаларды бөлек жоспарлаңыз.',
+  description = 'Нақты мерзімі бар тапсырмаларды жоспарлап, қадамдарға бөліңіз.',
   submitLabel = 'Тапсырманы сақтау',
 }) {
   const toast = useToast();
@@ -16,12 +43,25 @@ function TaskForm({
     priority: 'MEDIUM',
     status: 'PLANNED',
     description: '',
-    deadline: defaultDate,
+    deadline: toLocalDateTimeValue(defaultDate),
   });
   const [saving, setSaving] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiSuggestion, setAiSuggestion] = useState('');
   const [aiInserted, setAiInserted] = useState(false);
+  const minDeadline = useMemo(() => getMinDateTimeValue(), []);
+
+  const resetForm = () => {
+    setForm({
+      title: '',
+      priority: 'MEDIUM',
+      status: 'PLANNED',
+      description: '',
+      deadline: toLocalDateTimeValue(defaultDate),
+    });
+    setAiSuggestion('');
+    setAiInserted(false);
+  };
 
   const onChange = (event) => {
     const { name, value } = event.target;
@@ -37,7 +77,12 @@ function TaskForm({
     }
 
     if (!form.deadline) {
-      toast.error('Орындалу мерзімін көрсетіңіз');
+      toast.error('Соңғы мерзімді көрсетіңіз');
+      return;
+    }
+
+    if (isPastDateTime(form.deadline)) {
+      toast.error('Өткен күнді таңдауға болмайды');
       return;
     }
 
@@ -48,13 +93,11 @@ function TaskForm({
         priority: form.priority,
         status: form.status,
         description: form.description.trim(),
-        deadline: form.deadline || null,
+        deadline: form.deadline,
         tagIds: null,
       });
 
-      setForm({ title: '', priority: 'MEDIUM', status: 'PLANNED', description: '', deadline: defaultDate });
-      setAiSuggestion('');
-      setAiInserted(false);
+      resetForm();
       toast.success('Тапсырма қосылды');
       onTaskCreated?.(response.data);
     } catch (error) {
@@ -93,7 +136,7 @@ function TaskForm({
 
       const response = await chat.send(prompt);
       setAiSuggestion(response.data.reply || '');
-      toast.success('AI жоспар дайындады');
+      toast.success('AI жоспар дайындалды');
     } catch {
       toast.error('AI кеңесін алу мүмкін болмады');
     } finally {
@@ -102,7 +145,9 @@ function TaskForm({
   };
 
   const applyAiSuggestion = () => {
-    if (!aiSuggestion) return;
+    if (!aiSuggestion) {
+      return;
+    }
 
     setForm((prev) => ({
       ...prev,
@@ -150,8 +195,15 @@ function TaskForm({
         </div>
 
         <div>
-          <label className="mb-1 block text-sm font-medium text-[var(--text-secondary)]">Орындалу уақыты</label>
-          <input type="datetime-local" name="deadline" value={form.deadline} onChange={onChange} className="app-input" />
+          <label className="mb-1 block text-sm font-medium text-[var(--text-secondary)]">Соңғы мерзім</label>
+          <input
+            type="datetime-local"
+            name="deadline"
+            value={form.deadline}
+            min={minDeadline}
+            onChange={onChange}
+            className="app-input"
+          />
         </div>
 
         <div className="md:col-span-6">
@@ -171,8 +223,8 @@ function TaskForm({
             <div className="max-w-2xl">
               <div className="font-medium text-[var(--text-primary)]">AI көмек</div>
               <div className="mt-1 text-sm text-[var(--text-secondary)]">
-                Егер тапсырма күрделі болса, ассистент оны қадамдарға бөліп, кеңес береді. Дайын жоспарды бір батырмамен
-                сипаттамаға енгізуге болады.
+                Егер тапсырма күрделі болса, ассистент оны қадамдарға бөліп, кеңес береді. Дайын жоспарды бір
+                батырмамен сипаттамаға енгізуге болады.
               </div>
             </div>
             <div className="flex flex-wrap gap-2">

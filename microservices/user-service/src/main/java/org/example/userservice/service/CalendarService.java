@@ -5,6 +5,7 @@ import org.example.userservice.entity.Event;
 import org.example.userservice.repository.UserEventRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -19,8 +20,8 @@ public class CalendarService {
 
     @Transactional
     public Event createEvent(Long userId, EventDto dto) {
-        // Валидация времени
-        if (dto.getStartDateTime().isAfter(dto.getEndDateTime())) {
+        validateEventTime(dto);
+        if (!dto.getStartDateTime().isBefore(dto.getEndDateTime())) {
             throw new IllegalArgumentException("Start time must be before end time");
         }
 
@@ -51,11 +52,15 @@ public class CalendarService {
             throw new RuntimeException("You don't own this event");
         }
 
+        validateEventTime(dto);
+        if (!dto.getStartDateTime().isBefore(dto.getEndDateTime())) {
+            throw new IllegalArgumentException("Start time must be before end time");
+        }
+
         event.setTitle(dto.getTitle());
         event.setDescription(dto.getDescription());
         event.setStartDateTime(dto.getStartDateTime());
         event.setEndDateTime(dto.getEndDateTime());
-        // Убрал вызовы setColor() и setLocation(), так как они отсутствуют в модели.
 
         return eventRepository.save(event);
     }
@@ -75,5 +80,14 @@ public class CalendarService {
     @Transactional
     public void deleteAllUserEvents(Long userId) {
         eventRepository.deleteByUserId(userId);
+    }
+
+    private void validateEventTime(EventDto dto) {
+        if (dto.getStartDateTime() == null || dto.getEndDateTime() == null) {
+            throw new IllegalArgumentException("Start and end time are required");
+        }
+        if (dto.getStartDateTime().isBefore(LocalDateTime.now())) {
+            throw new IllegalArgumentException("Past dates are not allowed");
+        }
     }
 }

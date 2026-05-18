@@ -81,7 +81,6 @@ export default function BrowserPushBridge() {
           saveShownIds(shownIds);
         }
       } catch (error) {
-        // Silent polling failure keeps the shell stable.
       }
     };
 
@@ -104,7 +103,6 @@ export default function BrowserPushBridge() {
         await syncNotifications();
         intervalId = window.setInterval(syncNotifications, 30000);
       } catch (error) {
-        // Session may still be settling; skip quietly.
       }
     };
 

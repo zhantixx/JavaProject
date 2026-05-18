@@ -45,6 +45,7 @@ public class TaskService {
         if (userId == null || userId <= 0) {
             throw new IllegalArgumentException("Invalid User ID: " + userId);
         }
+        validateDeadline(request.getDeadline());
 
         System.out.println("Creating task for User ID: " + userId);
         System.out.println("Task request details: " + request);
@@ -114,6 +115,7 @@ public class TaskService {
         if (!task.getUserId().equals(userId)) {
             throw new RuntimeException("You don't own this task");
         }
+        validateDeadline(request.getDeadline());
 
         task.setTitle(request.getTitle());
         task.setDescription(request.getDescription());
@@ -186,6 +188,12 @@ public class TaskService {
             return new HashSet<>();
         }
         return new HashSet<>(tagRepository.findAllById(tagIds));
+    }
+
+    private void validateDeadline(LocalDateTime deadline) {
+        if (deadline != null && deadline.isBefore(LocalDateTime.now())) {
+            throw new IllegalArgumentException("Deadline must not be in the past");
+        }
     }
 
     private void sendAuditLog(Long userId, String action, String details) {
