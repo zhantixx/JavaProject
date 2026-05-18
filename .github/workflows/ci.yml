@@ -112,6 +112,8 @@ jobs:
 
       - name: Validate k6 scenario
         run: k6 inspect performance/k6/task-api-smoke.js
+      - name: Validate 1000 user k6 scenario
+        run: k6 inspect performance/k6/task-api-1000.js
 
   deploy-dev:
     name: Deploy to development
