@@ -124,6 +124,7 @@ services:
       GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET}
       JWT_SECRET: ${JWT_SECRET}
       INTERNAL_API_SECRET: 8c2f0e4f9a-local-dev-internal-secret
+      APP_CRYPTO_KEY: sanabot-local-crypto-key
       TASK_SERVICE_URL: http://task-service:8082
       OAUTH2_REDIRECT_URI: http://localhost:3002/oauth2/redirect
     ports:

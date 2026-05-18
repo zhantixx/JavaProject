@@ -38,7 +38,6 @@ public class SecurityConfig {
     private final OAuth2AuthorizedClientService authorizedClientService;
     private final OAuthAccountService oAuthAccountService;
     private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
 
     @Value("${app.oauth2.redirect-uri:http://localhost:3000/oauth2/redirect}")
     private String oauthRedirectUri;
@@ -47,14 +46,12 @@ public class SecurityConfig {
                           JwtUtil jwtUtil,
                           OAuth2AuthorizedClientService authorizedClientService,
                           OAuthAccountService oAuthAccountService,
-                          UserRepository userRepository,
-                          PasswordEncoder passwordEncoder) {
+                          UserRepository userRepository) {
         this.jwtAuthFilter = jwtAuthFilter;
         this.jwtUtil = jwtUtil;
         this.authorizedClientService = authorizedClientService;
         this.oAuthAccountService = oAuthAccountService;
         this.userRepository = userRepository;
-        this.passwordEncoder = passwordEncoder;
     }
 
     @Bean
@@ -89,7 +86,7 @@ public class SecurityConfig {
             created.setEmail(email);
             created.setName(name);
             created.setRole("USER");
-            created.setPassword("{oauth}" + passwordEncoder.encode("oauth-" + UUID.randomUUID()));
+            created.setPassword("{oauth}" + new BCryptPasswordEncoder(12).encode("oauth-" + UUID.randomUUID()));
             created.setConsentGiven(true);
             return userRepository.save(created);
         });

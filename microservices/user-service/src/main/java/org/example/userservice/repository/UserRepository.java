@@ -9,11 +9,11 @@ import java.util.List;
 import java.util.Optional;
 
 public interface UserRepository extends JpaRepository<User, Long> {
-    Optional<User> findByEmailHashOrEmail(String emailHash, String email);
+    Optional<User> findByEmailHash(String emailHash);
 
     default Optional<User> findByEmail(String email) {
         String normalizedEmail = EmailHashUtil.normalize(email);
-        return findByEmailHashOrEmail(EmailHashUtil.sha256(normalizedEmail), normalizedEmail);
+        return findByEmailHash(EmailHashUtil.sha256(normalizedEmail));
     }
 
     List<User> findAllByScheduledDeletionAtBefore(LocalDateTime cutoff);

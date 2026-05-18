@@ -9,6 +9,8 @@ spring:
     url: jdbc:postgresql://postgres-user:5432/user_db
     username: postgres
     password: 123456
+    hikari:
+      connection-init-sql: SELECT set_config('app.crypto_key', '${APP_CRYPTO_KEY:local-dev-crypto-key}', false)
   jpa:
     hibernate:
       ddl-auto: update

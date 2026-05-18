@@ -1,6 +1,7 @@
 package org.example.userservice.entity;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.ColumnTransformer;
 import org.example.userservice.utils.EmailHashUtil;
 
 import java.time.LocalDateTime;
@@ -13,7 +14,11 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(unique = true, nullable = false)
+    @Column(unique = true, nullable = false, columnDefinition = "TEXT")
+    @ColumnTransformer(
+            read = "pgp_sym_decrypt(dearmor(email), current_setting('app.crypto_key'))",
+            write = "armor(pgp_sym_encrypt(?, current_setting('app.crypto_key')))"
+    )
     private String email;
 
     @Column(name = "email_hash", unique = true, length = 64)
@@ -28,7 +33,11 @@ public class User {
     @Column(name = "avatar_url")
     private String avatarUrl;
 
-    @Column(name = "phone")
+    @Column(name = "phone", columnDefinition = "TEXT")
+    @ColumnTransformer(
+            read = "CASE WHEN phone IS NULL THEN NULL ELSE pgp_sym_decrypt(dearmor(phone), current_setting('app.crypto_key')) END",
+            write = "armor(pgp_sym_encrypt(?, current_setting('app.crypto_key')))"
+    )
     private String phone;
 
     private String role = "USER";

@@ -45,6 +45,7 @@ public class GdprExportService {
                 user.getId(),
                 user.getEmail(),
                 user.getName(),
+                user.getPhone(),
                 user.getAvatarUrl(),
                 user.getCreatedAt() == null ? null : user.getCreatedAt().toString()
         );

@@ -1,0 +1,3 @@
+ALTER TABLE users
+    ALTER COLUMN email TYPE TEXT,
+    ALTER COLUMN phone TYPE TEXT;
