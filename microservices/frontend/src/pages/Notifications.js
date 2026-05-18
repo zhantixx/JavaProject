@@ -14,12 +14,22 @@ function statusLabel(status) {
   return 'Кезекте';
 }
 
+function browserPermissionLabel(permission) {
+  if (permission === 'granted') return 'Қосулы';
+  if (permission === 'denied') return 'Бұғатталған';
+  if (permission === 'default') return 'Рұқсат сұрайды';
+  return 'Қолдамайды';
+}
+
 export default function NotificationsPage() {
   const toast = useToast();
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState(null);
   const [items, setItems] = useState([]);
   const [summary, setSummary] = useState({ total: 0, unread: 0 });
+  const [permission, setPermission] = useState(
+    typeof window !== 'undefined' && 'Notification' in window ? Notification.permission : 'unsupported'
+  );
 
   const loadData = async () => {
     try {
@@ -50,6 +60,21 @@ export default function NotificationsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const requestBrowserPermission = async () => {
+    if (typeof window === 'undefined' || !('Notification' in window)) {
+      toast.info('Бұл браузер push еске салғыштарды қолдамайды');
+      return;
+    }
+
+    const result = await Notification.requestPermission();
+    setPermission(result);
+    if (result === 'granted') {
+      toast.success('Браузер еске салғыштары қосылды');
+    } else {
+      toast.info('Браузер еске салғыштарына рұқсат берілмеді');
+    }
+  };
+
   const handleMarkAsRead = async (notificationId) => {
     if (!userId) return;
     try {
@@ -74,7 +99,17 @@ export default function NotificationsPage() {
         stats={[
           { label: 'Барлығы', value: summary.total, hint: 'Жиналған хабарлама саны' },
           { label: 'Оқылмаған', value: summary.unread, hint: 'Әлі ашылмаған ескертулер' },
+          {
+            label: 'Browser push',
+            value: browserPermissionLabel(permission),
+            hint: 'Жаңа PUSH еске салғыштар жүйелік терезеде көрсетіледі',
+          },
         ]}
+        actions={
+          permission === 'granted' || permission === 'unsupported' ? null : (
+            <GhostButton onClick={requestBrowserPermission}>Browser push қосу</GhostButton>
+          )
+        }
       />
 
       <Surface className="overflow-hidden">

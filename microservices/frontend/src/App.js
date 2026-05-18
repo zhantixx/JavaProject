@@ -4,6 +4,7 @@ import Login from './components/Login';
 import Register from './components/Register';
 import TaskList from './components/TaskList';
 import Chat from './components/Chat';
+import BrowserPushBridge from './components/BrowserPushBridge';
 import OAuth2Redirect from './components/OAuth2Redirect';
 import Profile from './pages/Profile';
 import CalendarPage from './pages/Calendar';
@@ -30,7 +31,7 @@ function ChatPage() {
   return (
     <div className="mx-auto max-w-5xl">
       <div className="mb-6">
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted-text)]">Смарт көмек</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--muted-text)]">Smart Komek</p>
         <h1 className="mt-2 text-3xl font-semibold text-[var(--text-primary)]">AI көмекші</h1>
         <p className="mt-2 max-w-2xl text-sm text-[var(--text-secondary)]">
           Күндік жоспар, ой жинау және қысқа кеңес алу үшін сұрағыңызды жазыңыз.
@@ -84,6 +85,7 @@ function AppShell() {
       { to: '/tasks', label: 'Тапсырмалар' },
       { to: '/calendar', label: 'Күнтізбе' },
       { to: '/notes', label: 'Жазбалар' },
+      { to: '/notifications', label: 'Хабарламалар' },
       { to: '/chat', label: 'AI чат' },
       { to: '/profile', label: 'Профиль' },
     ],
@@ -92,6 +94,8 @@ function AppShell() {
 
   return (
     <div className="min-h-screen bg-transparent text-[var(--text-primary)]">
+      {token ? <BrowserPushBridge /> : null}
+
       <header className="sticky top-0 z-30 border-b border-[var(--border-color)] bg-[rgba(248,251,255,0.72)] backdrop-blur dark:bg-[rgba(8,17,32,0.72)]">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 md:px-6">
           <div className="flex min-w-0 items-center gap-4">
