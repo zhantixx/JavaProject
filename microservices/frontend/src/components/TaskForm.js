@@ -7,7 +7,7 @@ function TaskForm({
   onTaskCreated,
   defaultDate = '',
   title = 'Жаңа тапсырма',
-  description = 'Аяқталу уақыты анық тапсырмаларды бөлек жоспарлаңыз.',
+  description = 'Аяқталу уақыты нақты тапсырмаларды бөлек жоспарлаңыз.',
   submitLabel = 'Тапсырманы сақтау',
 }) {
   const toast = useToast();
@@ -21,22 +21,26 @@ function TaskForm({
   const [saving, setSaving] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiSuggestion, setAiSuggestion] = useState('');
+  const [aiInserted, setAiInserted] = useState(false);
 
-  const onChange = (e) => {
-    const { name, value } = e.target;
+  const onChange = (event) => {
+    const { name, value } = event.target;
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+
     if (!form.title.trim()) {
       toast.error('Тапсырма атауын жазыңыз');
       return;
     }
+
     if (!form.deadline) {
-      toast.error('Орындау мерзімін көрсетіңіз');
+      toast.error('Орындалу мерзімін көрсетіңіз');
       return;
     }
+
     setSaving(true);
     try {
       const response = await tasks.create({
@@ -47,11 +51,14 @@ function TaskForm({
         deadline: form.deadline || null,
         tagIds: null,
       });
+
       setForm({ title: '', priority: 'MEDIUM', status: 'PLANNED', description: '', deadline: defaultDate });
+      setAiSuggestion('');
+      setAiInserted(false);
       toast.success('Тапсырма қосылды');
       onTaskCreated?.(response.data);
-    } catch (err) {
-      toast.error(err.response?.data || 'Тапсырма қосылмады');
+    } catch (error) {
+      toast.error(error.response?.data || 'Тапсырма қосылмады');
     } finally {
       setSaving(false);
     }
@@ -64,6 +71,8 @@ function TaskForm({
     }
 
     setAiLoading(true);
+    setAiInserted(false);
+
     try {
       const prompt = [
         'Сен жеке ассистентсің.',
@@ -74,7 +83,7 @@ function TaskForm({
         '2) 3-7 нақты қадам',
         '3) Ұсынылған орындау реті',
         '4) Ықтимал тәуекелдер',
-        '5) Пайдаланушыға қысқа кеңес',
+        '5) Қысқа кеңес',
         '',
         `Тапсырма атауы: ${form.title}`,
         `Сипаттама: ${form.description || 'Жоқ'}`,
@@ -82,10 +91,10 @@ function TaskForm({
         `Мерзімі: ${form.deadline || 'Көрсетілмеген'}`,
       ].join('\n');
 
-      const res = await chat.send(prompt);
-      setAiSuggestion(res.data.reply || '');
+      const response = await chat.send(prompt);
+      setAiSuggestion(response.data.reply || '');
       toast.success('AI жоспар дайындады');
-    } catch (err) {
+    } catch {
       toast.error('AI кеңесін алу мүмкін болмады');
     } finally {
       setAiLoading(false);
@@ -94,13 +103,15 @@ function TaskForm({
 
   const applyAiSuggestion = () => {
     if (!aiSuggestion) return;
+
     setForm((prev) => ({
       ...prev,
-      description: prev.description
+      description: prev.description.trim()
         ? `${prev.description.trim()}\n\nAI жоспары:\n${aiSuggestion}`
         : `AI жоспары:\n${aiSuggestion}`,
     }));
-    toast.success('AI ұсынысы сипаттамаға енгізілді');
+    setAiInserted(true);
+    toast.success('AI жоспары сипаттамаға қосылды');
   };
 
   return (
@@ -139,7 +150,7 @@ function TaskForm({
         </div>
 
         <div>
-          <label className="mb-1 block text-sm font-medium text-[var(--text-secondary)]">Орындау уақыты</label>
+          <label className="mb-1 block text-sm font-medium text-[var(--text-secondary)]">Орындалу уақыты</label>
           <input type="datetime-local" name="deadline" value={form.deadline} onChange={onChange} className="app-input" />
         </div>
 
@@ -149,32 +160,43 @@ function TaskForm({
             name="description"
             value={form.description}
             onChange={onChange}
-            placeholder="Не істеу керек және нәтижесі қандай болуы тиіс"
+            placeholder="Не істеу керек және нәтиже қандай болуы тиіс"
             rows={5}
             className="app-input min-h-[140px] resize-none"
           />
         </div>
 
         <div className="md:col-span-6 rounded-2xl border border-[var(--border-color)] bg-[var(--card-strong)] p-4">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div>
+          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+            <div className="max-w-2xl">
               <div className="font-medium text-[var(--text-primary)]">AI көмек</div>
               <div className="mt-1 text-sm text-[var(--text-secondary)]">
-                Егер тапсырма күрделі болса, ассистент оны қадамдарға бөліп, кеңес береді.
+                Егер тапсырма күрделі болса, ассистент оны қадамдарға бөліп, кеңес береді. Дайын жоспарды бір батырмамен
+                сипаттамаға енгізуге болады.
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
               <GhostButton type="button" onClick={requestAiPlan} disabled={aiLoading}>
                 {aiLoading ? 'Талдап жатыр...' : 'AI жоспар сұрау'}
               </GhostButton>
-              <GhostButton type="button" onClick={applyAiSuggestion} disabled={!aiSuggestion}>
-                Ұсынысты енгізу
-              </GhostButton>
+              <PrimaryButton type="button" onClick={applyAiSuggestion} disabled={!aiSuggestion || aiInserted}>
+                {aiInserted ? 'Сипаттамаға қосылды' : 'Сипаттамаға қосу'}
+              </PrimaryButton>
             </div>
           </div>
 
-          <div className="mt-4 rounded-2xl bg-[var(--panel-bg)] p-4 text-sm leading-7 text-[var(--text-secondary)] whitespace-pre-line">
-            {aiSuggestion || 'Мұнда AI ұсынған қадамдық жоспар мен кеңес көрінеді.'}
+          <div className="mt-4 rounded-2xl border border-[var(--border-color)] bg-[var(--panel-bg)] p-4">
+            <div className="flex items-center justify-between gap-3">
+              <div className="text-sm font-medium text-[var(--text-primary)]">AI ұсынған жоспар</div>
+              {aiSuggestion ? (
+                <span className="rounded-full bg-[var(--brand-soft)] px-3 py-1 text-xs font-medium text-[var(--brand-strong)]">
+                  Дайын ұсыныс
+                </span>
+              ) : null}
+            </div>
+            <div className="mt-3 whitespace-pre-line text-sm leading-7 text-[var(--text-secondary)]">
+              {aiSuggestion || 'Мұнда AI ұсынған қадамдық жоспар мен қысқа кеңес көрінеді.'}
+            </div>
           </div>
         </div>
 
