@@ -10,4 +10,5 @@ public interface AuditLogRepository extends JpaRepository<AuditLog, Long> {
     List<AuditLog> findByUserIdOrderByTimestampDesc(Long userId);
     Page<AuditLog> findByUserIdOrderByTimestampDesc(Long userId, Pageable pageable);
     Page<AuditLog> findAllByOrderByTimestampDesc(Pageable pageable);
+    long deleteByUserId(Long userId);
 }

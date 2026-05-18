@@ -7,4 +7,5 @@ import java.util.Optional;
 
 public interface OAuthAccountRepository extends JpaRepository<OAuthAccount, Long> {
     Optional<OAuthAccount> findByEmailAndProvider(String email, String provider);
+    long deleteByEmail(String email);
 }

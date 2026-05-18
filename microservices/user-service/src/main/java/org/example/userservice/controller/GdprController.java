@@ -2,6 +2,7 @@ package org.example.userservice.controller;
 
 import jakarta.servlet.http.HttpServletRequest;
 import org.example.userservice.entity.User;
+import org.example.userservice.repository.RefreshTokenRepository;
 import org.example.userservice.repository.UserRepository;
 import org.example.userservice.service.AuditService;
 import org.example.userservice.service.GdprExportService;
@@ -16,6 +17,8 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 
+import java.time.LocalDateTime;
+
 @RestController
 @RequestMapping("/api/users/me")
 public class GdprController {
@@ -24,6 +27,7 @@ public class GdprController {
     private final GdprExportService gdprExportService;
     private final AuditService auditService;
     private final RestTemplate restTemplate;
+    private final RefreshTokenRepository refreshTokenRepository;
 
     @Value("${task.service.url:http://task-service:8082}")
     private String taskServiceUrl;
@@ -34,11 +38,13 @@ public class GdprController {
     public GdprController(UserRepository userRepository,
                           GdprExportService gdprExportService,
                           AuditService auditService,
-                          RestTemplate restTemplate) {
+                          RestTemplate restTemplate,
+                          RefreshTokenRepository refreshTokenRepository) {
         this.userRepository = userRepository;
         this.gdprExportService = gdprExportService;
         this.auditService = auditService;
         this.restTemplate = restTemplate;
+        this.refreshTokenRepository = refreshTokenRepository;
     }
 
     @GetMapping("/export")
@@ -59,18 +65,14 @@ public class GdprController {
         User user = userRepository.findByEmail(userDetails.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.set("X-Internal-Secret", internalApiSecret);
-        restTemplate.exchange(
-                taskServiceUrl + "/api/tasks/user/" + user.getId(),
-                HttpMethod.DELETE,
-                new HttpEntity<>(headers),
-                Void.class
-        );
+        LocalDateTime now = LocalDateTime.now();
+        user.setActive(false);
+        user.setDeletionRequestedAt(now);
+        user.setScheduledDeletionAt(now.plusDays(30));
+        userRepository.save(user);
+        refreshTokenRepository.deleteByUserId(user.getId());
 
-        auditService.log(user.getId(), "DELETE_ACCOUNT", null, request.getRemoteAddr());
-        userRepository.delete(user);
-
-        return ResponseEntity.noContent().build();
+        auditService.log(user.getId(), "REQUEST_DELETE_ACCOUNT", "Scheduled for " + user.getScheduledDeletionAt(), request.getRemoteAddr());
+        return ResponseEntity.accepted().build();
     }
 }
